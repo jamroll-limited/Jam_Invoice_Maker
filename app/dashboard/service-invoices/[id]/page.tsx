@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Download, Printer, ArrowLeft } from "lucide-react";
+import { Download, Printer, ArrowLeft, Wrench, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,13 +16,24 @@ export default function ViewServiceInvoicePage() {
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
 
+  /* ---------- Data fetching (unchanged) ---------- */
   useEffect(() => {
     fetch(`/api/invoices/${id}`)
-      .then((res) => { if (!res.ok) throw new Error("Not found"); return res.json(); })
-      .then((data) => { setData(data); setLoading(false); })
-      .catch(() => { toast.error("Invoice not found"); setLoading(false); });
+      .then((res) => {
+        if (!res.ok) throw new Error("Not found");
+        return res.json();
+      })
+      .then((data) => {
+        setData(data);
+        setLoading(false);
+      })
+      .catch(() => {
+        toast.error("Invoice not found");
+        setLoading(false);
+      });
   }, [id]);
 
+  /* ---------- PDF download (unchanged logic) ---------- */
   const handleDownloadPDF = async () => {
     try {
       setDownloading(true);
@@ -47,56 +58,124 @@ export default function ViewServiceInvoicePage() {
     }
   };
 
+  /* ---------- Print (unchanged) ---------- */
   const handlePrint = () => window.print();
 
+  /* ---------- Loading skeleton ---------- */
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
             <Skeleton className="h-9 w-9 rounded-lg" />
-            <Skeleton className="h-7 w-40" />
+            <div className="space-y-1.5">
+              <Skeleton className="h-3 w-24" />
+              <Skeleton className="h-6 w-48" />
+            </div>
           </div>
           <div className="flex gap-2">
-            <Skeleton className="h-9 w-20 rounded-lg" />
-            <Skeleton className="h-9 w-32 rounded-lg" />
+            <Skeleton className="h-9 w-24 rounded-lg" />
+            <Skeleton className="h-9 w-36 rounded-lg" />
           </div>
         </div>
-        <div className="bg-muted/20 p-8 rounded-xl border flex justify-center">
-          <div className="space-y-4 w-full max-w-lg">
-            {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
+
+        <div className="flex justify-center rounded-2xl border border-slate-200/70 bg-slate-100/70 p-8">
+          <div className="w-full max-w-lg space-y-4">
+            {[...Array(6)].map((_, i) => (
+              <Skeleton key={i} className="h-12 w-full" />
+            ))}
           </div>
         </div>
       </div>
     );
   }
 
+  /* ---------- Not found ---------- */
   if (!data) {
-    return <div className="p-8 text-center text-destructive">Document not found or you don&apos;t have access.</div>;
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 text-center">
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FBEAF0] text-[#EA2B7B]">
+          <AlertCircle className="h-7 w-7" aria-hidden="true" />
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-slate-700">Document not found</p>
+          <p className="mt-1 text-xs text-slate-400">
+            This service invoice may have been deleted, or you don&apos;t have access to view it.
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          onClick={() => router.back()}
+          className="mt-2 gap-1.5 rounded-lg border-slate-200 text-slate-700 hover:bg-slate-50"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Go back
+        </Button>
+      </div>
+    );
   }
 
+  /* ---------- Render ---------- */
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between print:hidden">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.back()}>
+      {/* Page header */}
+      <div className="flex flex-col gap-4 print:hidden sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => router.back()}
+            className="text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+            aria-label="Go back"
+          >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-2xl font-bold">{data.invoiceNumber || data.name}</h1>
+          <div>
+            <nav className="mb-1 flex items-center gap-1.5 text-xs font-medium text-slate-400">
+              <span>Billing</span>
+              <span aria-hidden="true">/</span>
+              <span>Service Invoices</span>
+              <span aria-hidden="true">/</span>
+              <span className="text-slate-600">{data.invoiceNumber || data.name}</span>
+            </nav>
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[#51B9A9]/10 text-[#0E8A7C]">
+                <Wrench className="h-3.5 w-3.5" aria-hidden="true" />
+              </span>
+              <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+                {data.invoiceNumber || data.name}
+              </h1>
+            </div>
+          </div>
         </div>
+
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handlePrint}>
-            <Printer className="h-4 w-4 mr-2" /> Print
+          <Button
+            variant="outline"
+            onClick={handlePrint}
+            className="gap-1.5 rounded-lg border-slate-200 text-slate-700 hover:bg-slate-50"
+          >
+            <Printer className="h-4 w-4" />
+            Print
           </Button>
-          <Button onClick={handleDownloadPDF} disabled={downloading}>
-            {downloading ? <Spinner className="h-4 w-4 mr-2" /> : <Download className="h-4 w-4 mr-2" />}
+          <Button
+            onClick={handleDownloadPDF}
+            disabled={downloading}
+            className="gap-1.5 rounded-lg bg-[#5A378F] text-white shadow-[0_2px_8px_-2px_rgba(90,55,143,0.5)] hover:bg-[#4a2d7a]"
+          >
+            {downloading ? (
+              <Spinner className="h-4 w-4" />
+            ) : (
+              <Download className="h-4 w-4" />
+            )}
             {downloading ? "Generating…" : "Download PDF"}
           </Button>
         </div>
       </div>
 
-      <div className="overflow-x-auto bg-muted/20 p-8 rounded-xl border flex justify-center print:p-0 print:border-none print:bg-white print:overflow-visible">
-        <div className="scale-75 md:scale-100 origin-top print:scale-100">
+      {/* Preview */}
+      <div className="flex justify-center overflow-x-auto rounded-2xl border border-slate-200/70 bg-slate-100/70 p-8 print:border-none print:bg-white print:p-0 print:overflow-visible">
+        <div className="origin-top scale-75 transition-transform md:scale-100 print:scale-100">
           <ServiceInvoicePreview data={data} />
         </div>
       </div>

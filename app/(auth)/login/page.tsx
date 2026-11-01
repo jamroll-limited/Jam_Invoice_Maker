@@ -8,20 +8,19 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import Link from "next/link";
-import { ArrowRight, Bolt, Lock, Mail } from "lucide-react";
+import { ArrowRight, Plus, Lock, Mail } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 function LoginForm() {
   const searchParams = useSearchParams();
   const callbackUrlParam = searchParams.get("callbackUrl");
 
+  /* ---------- callbackUrl sanitization (unchanged logic) ---------- */
   const callbackUrl = (() => {
     if (!callbackUrlParam) return "/dashboard";
 
     try {
-      const url = new URL(
-        callbackUrlParam,
-        window.location.origin
-      );
+      const url = new URL(callbackUrlParam, window.location.origin);
 
       if (url.origin !== window.location.origin) {
         return "/dashboard";
@@ -37,6 +36,7 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
+  /* ---------- Credentials login (unchanged logic) ---------- */
   const handleCredentialsLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (loading) return;
@@ -66,40 +66,83 @@ function LoginForm() {
     }
   };
 
+  /* ---------- Google login (unchanged) ---------- */
   const handleGoogleLogin = () => signIn("google", { callbackUrl });
 
   return (
-    <div className="flex w-full max-w-3xl overflow-hidden rounded-xl border border-border">
-      {/* Left panel */}
-      <div className="hidden md:flex md:flex-col md:justify-between w-80 shrink-0 bg-[#1a1a2e] p-8">
-        <div className="w-9 h-9 rounded-lg bg-[#5A378F] flex items-center justify-center">
-          <Bolt className="h-4 w-4 text-white" />
+    <div className="flex w-full max-w-4xl overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-[0_8px_32px_-8px_rgba(15,23,42,0.12)]">
+      {/* Left brand panel */}
+      <div className="relative hidden w-80 shrink-0 flex-col justify-between overflow-hidden bg-[#15152b] p-8 md:flex">
+        {/* Decorative gradient blob */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-[#5A378F]/30 blur-3xl"
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -bottom-20 -left-10 h-48 w-48 rounded-full bg-[#51B9A9]/15 blur-3xl"
+        />
+
+        {/* Brand mark */}
+        <div className="relative flex items-center gap-3">
+          <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#6A45BF] to-[#4A2D7A] shadow-[0_4px_12px_-2px_rgba(90,55,143,0.5)]">
+            <Plus className="h-4 w-4 rotate-45 text-white" aria-hidden="true" />
+            <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-[#15152b] bg-[#51B9A9]" />
+          </div>
+          <span className="text-[15px] font-semibold tracking-tight text-white">
+            Jamroll
+          </span>
         </div>
-        <div>
-          <p className="text-[11px] uppercase tracking-widest text-[#7F77DD] mb-2">
+
+        {/* Tagline */}
+        <div className="relative">
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#7F77DD]">
             Welcome back
           </p>
-          <h2 className="text-2xl font-medium text-[#EEEDFE] leading-snug mb-3">
+          <h2 className="mb-3 text-2xl font-semibold leading-snug tracking-tight text-[#EEEDFE]">
             Sign in to manage your invoices and quotations
           </h2>
-          <p className="text-sm text-[#7F77DD] leading-relaxed">
+          <p className="text-sm leading-relaxed text-white/40">
             Manage invoices, quotations, clients, and payment records from your dashboard.
           </p>
         </div>
-        <div />
+
+        {/* Footer status */}
+        <div className="relative flex items-center gap-2 text-xs text-white/40">
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-2 w-2 animate-ping rounded-full bg-[#51B9A9] opacity-60" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-[#51B9A9]" />
+          </span>
+          All systems operational
+        </div>
       </div>
 
-      {/* Right form */}
-      <div className="flex-1 bg-background px-8 py-10 flex flex-col justify-center">
-        <h1 className="text-xl font-medium text-[#1A1A1A] mb-1">Sign in</h1>
-        <p className="text-sm text-[#1A1A1A]/40 mb-7">
-          Enter your credentials below
+      {/* Right form panel */}
+      <div className="flex flex-1 flex-col justify-center bg-white px-8 py-10 sm:px-12">
+        {/* Mobile brand mark */}
+        <div className="mb-6 flex items-center gap-3 md:hidden">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#6A45BF] to-[#4A2D7A]">
+            <Plus className="h-4 w-4 rotate-45 text-white" aria-hidden="true" />
+          </div>
+          <span className="text-[15px] font-semibold tracking-tight text-slate-900">
+            Jamroll
+          </span>
+        </div>
+
+        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Sign in</h1>
+        <p className="mb-7 mt-1 text-sm text-slate-500">
+          Enter your credentials below to continue
         </p>
 
         <form onSubmit={handleCredentialsLogin} className="space-y-4">
+          {/* Email */}
           <div className="space-y-1.5">
-            <Label htmlFor="email" className="flex items-center gap-1.5 text-xs font-medium text-[#1A1A1A]/50">
-              <Mail className="h-3.5 w-3.5" /> Email
+            <Label
+              htmlFor="email"
+              className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500"
+            >
+              <Mail className="h-3.5 w-3.5" aria-hidden="true" />
+              Email
             </Label>
             <Input
               id="email"
@@ -108,12 +151,18 @@ function LoginForm() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              className="bg-slate-50/60 focus:bg-white"
             />
           </div>
 
+          {/* Password */}
           <div className="space-y-1.5">
-            <Label htmlFor="password" className="flex items-center gap-1.5 text-xs font-medium text-[#1A1A1A]/50">
-              <Lock className="h-3.5 w-3.5" /> Password
+            <Label
+              htmlFor="password"
+              className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500"
+            >
+              <Lock className="h-3.5 w-3.5" aria-hidden="true" />
+              Password
             </Label>
             <Input
               id="password"
@@ -122,35 +171,47 @@ function LoginForm() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              className="bg-slate-50/60 focus:bg-white"
             />
             <div className="flex justify-end">
-              <Link href="/forgot-password" className="text-xs text-[#51B9A9] hover:underline">
+              <Link
+                href="/forgot-password"
+                className="text-xs font-medium text-[#51B9A9] transition-colors hover:text-[#0E8A7C] hover:underline"
+              >
                 Forgot password?
               </Link>
             </div>
           </div>
 
+          {/* Submit */}
           <Button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#5A378F] hover:bg-[#4a2d7a] text-white gap-2"
+            className="w-full gap-2 rounded-lg bg-[#5A378F] text-white shadow-[0_2px_8px_-2px_rgba(90,55,143,0.5)] transition-all hover:bg-[#4a2d7a] disabled:opacity-50"
           >
-            {loading ? "Signing in..." : "Sign in"}
+            {loading ? "Signing in…" : "Sign in"}
             {!loading && <ArrowRight className="h-4 w-4" />}
           </Button>
         </form>
 
+        {/* Divider */}
         <div className="relative my-5">
           <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t border-border" />
+            <span className="w-full border-t border-slate-200" />
           </div>
           <div className="relative flex justify-center">
-            <span className="bg-background px-2 text-xs text-[#1A1A1A]/30">or</span>
+            <span className="bg-white px-3 text-xs font-medium text-slate-400">or</span>
           </div>
         </div>
 
-        <Button variant="outline" type="button" className="w-full gap-2 border-[#E8E8E8] hover:bg-[#F0F0F0] text-[#1A1A1A]" onClick={handleGoogleLogin}>
-          <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true" fill="currentColor">
+        {/* Google */}
+        <Button
+          variant="outline"
+          type="button"
+          onClick={handleGoogleLogin}
+          className="w-full gap-2.5 rounded-lg border-slate-200 bg-white text-slate-700 transition-colors hover:bg-slate-50"
+        >
+          <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
             <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
             <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
@@ -159,9 +220,13 @@ function LoginForm() {
           Continue with Google
         </Button>
 
-        <p className="text-center text-sm text-[#1A1A1A]/40 mt-5">
+        {/* Sign up */}
+        <p className="mt-6 text-center text-sm text-slate-500">
           Don&apos;t have an account?{" "}
-          <Link href="/register" className="text-[#51B9A9] hover:underline">
+          <Link
+            href="/register"
+            className="font-semibold text-[#5A378F] transition-colors hover:text-[#4a2d7a] hover:underline"
+          >
             Create one
           </Link>
         </p>
@@ -172,7 +237,7 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <div className="flex h-screen w-full items-center justify-center bg-muted/40 p-4">
+    <div className="flex min-h-screen w-full items-center justify-center bg-slate-100/70 p-4">
       <Suspense fallback={null}>
         <LoginForm />
       </Suspense>

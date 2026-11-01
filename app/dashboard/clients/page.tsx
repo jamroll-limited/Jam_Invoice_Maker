@@ -1,20 +1,50 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Plus, Search, Edit, Trash2, X, Check, Building2, Mail, Phone, MapPin } from "lucide-react";
+import {
+  Plus, Search, Edit, Trash2, X, Check, Building2, Mail, Phone, MapPin,
+  ContactRound, Inbox, User,
+} from "lucide-react";
 import { ClientData } from "@/types/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
+import { cn } from "@/lib/utils";
 
 const EMPTY_FORM = { name: "", companyName: "", email: "", phone: "", address: "" };
 
+/* ------------------------------------------------------------------ */
+/*  Field wrapper — consistent label + input spacing                   */
+/* ------------------------------------------------------------------ */
+function Field({
+  label,
+  required,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+        {label}
+        {required && <span className="ml-0.5 text-[#EA2B7B]">*</span>}
+      </Label>
+      {children}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Client form — add / edit                                           */
+/* ------------------------------------------------------------------ */
 function ClientForm({
   initial,
   onSave,
@@ -31,34 +61,75 @@ function ClientForm({
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="space-y-1.5">
-          <Label>Name <span className="text-[#EA2B7B]">*</span></Label>
-          <Input value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="John Doe" />
-        </div>
-        <div className="space-y-1.5">
-          <Label>Company Name</Label>
-          <Input value={form.companyName} onChange={(e) => set("companyName", e.target.value)} placeholder="Acme Corp" />
-        </div>
-        <div className="space-y-1.5">
-          <Label>Email</Label>
-          <Input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} placeholder="john@example.com" />
-        </div>
-        <div className="space-y-1.5">
-          <Label>Phone</Label>
-          <Input value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="+1 234 567 890" />
-        </div>
-        <div className="space-y-1.5 sm:col-span-2">
-          <Label>Address</Label>
-          <Textarea value={form.address} onChange={(e) => set("address", e.target.value)} placeholder="123 Main St, City, Country" rows={2} />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Field label="Name" required>
+          <Input
+            value={form.name}
+            onChange={(e) => set("name", e.target.value)}
+            placeholder="John Doe"
+            className="bg-slate-50/60 focus:bg-white"
+            autoFocus
+          />
+        </Field>
+        <Field label="Company Name">
+          <Input
+            value={form.companyName}
+            onChange={(e) => set("companyName", e.target.value)}
+            placeholder="Acme Corp"
+            className="bg-slate-50/60 focus:bg-white"
+          />
+        </Field>
+        <Field label="Email">
+          <Input
+            type="email"
+            value={form.email}
+            onChange={(e) => set("email", e.target.value)}
+            placeholder="john@example.com"
+            className="bg-slate-50/60 focus:bg-white"
+          />
+        </Field>
+        <Field label="Phone">
+          <Input
+            value={form.phone}
+            onChange={(e) => set("phone", e.target.value)}
+            placeholder="+1 234 567 890"
+            className="bg-slate-50/60 focus:bg-white"
+          />
+        </Field>
+        <div className="sm:col-span-2">
+          <Field label="Address">
+            <Textarea
+              value={form.address}
+              onChange={(e) => set("address", e.target.value)}
+              placeholder="123 Main St, City, Country"
+              rows={2}
+              className="bg-slate-50/60 focus:bg-white resize-none"
+            />
+          </Field>
         </div>
       </div>
       <div className="flex justify-end gap-2 pt-1">
-        <Button variant="outline" size="sm" onClick={onCancel} disabled={saving}>
-          <X className="h-3.5 w-3.5 mr-1.5" /> Cancel
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onCancel}
+          disabled={saving}
+          className="gap-1.5"
+        >
+          <X className="h-3.5 w-3.5" />
+          Cancel
         </Button>
-        <Button size="sm" onClick={() => onSave(form)} disabled={saving || !form.name.trim()} className="bg-[#5A378F] hover:bg-[#4a2d7a] text-white">
-          {saving ? <Spinner className="h-3.5 w-3.5 mr-1.5" /> : <Check className="h-3.5 w-3.5 mr-1.5" />}
+        <Button
+          size="sm"
+          onClick={() => onSave(form)}
+          disabled={saving || !form.name.trim()}
+          className="gap-1.5 bg-[#5A378F] text-white hover:bg-[#4a2d7a]"
+        >
+          {saving ? (
+            <Spinner className="h-3.5 w-3.5" />
+          ) : (
+            <Check className="h-3.5 w-3.5" />
+          )}
           Save Client
         </Button>
       </div>
@@ -66,6 +137,43 @@ function ClientForm({
   );
 }
 
+/* ------------------------------------------------------------------ */
+/*  Client avatar — initials in a tinted circle                        */
+/* ------------------------------------------------------------------ */
+function ClientAvatar({ name, companyName }: { name: string; companyName?: string }) {
+  const initials = (name || "U")
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+
+  // Pick a tint based on the first letter for visual variety
+  const tints = [
+    "bg-[#5A378F]/10 text-[#5A378F]",
+    "bg-[#51B9A9]/10 text-[#0E8A7C]",
+    "bg-[#EA2B7B]/10 text-[#EA2B7B]",
+    "bg-[#E0B400]/10 text-[#7A5C00]",
+    "bg-[#3C3489]/10 text-[#3C3489]",
+  ];
+  const tint = tints[(name?.charCodeAt(0) || 0) % tints.length];
+
+  return (
+    <div
+      className={cn(
+        "flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold",
+        tint
+      )}
+      aria-hidden="true"
+    >
+      {companyName ? <Building2 className="h-5 w-5" /> : initials}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Main page                                                          */
+/* ------------------------------------------------------------------ */
 export default function ClientsPage() {
   const { data: session } = useSession();
   const isSuperAdmin = session?.user?.role === "Super Admin";
@@ -79,6 +187,7 @@ export default function ClientsPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ClientData | null>(null);
 
+  /* ---------- Data fetching (unchanged) ---------- */
   useEffect(() => {
     fetch("/api/clients")
       .then(async (r) => {
@@ -99,6 +208,7 @@ export default function ClientsPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  /* ---------- Filter (unchanged logic) ---------- */
   const filtered = clients.filter((c) => {
     const q = search.toLowerCase();
     return (
@@ -108,6 +218,7 @@ export default function ClientsPage() {
     );
   });
 
+  /* ---------- Add (unchanged logic) ---------- */
   const handleAdd = async (data: typeof EMPTY_FORM) => {
     setSaving(true);
     try {
@@ -131,6 +242,7 @@ export default function ClientsPage() {
     }
   };
 
+  /* ---------- Edit (unchanged logic) ---------- */
   const handleEdit = async (id: string, data: typeof EMPTY_FORM) => {
     setSaving(true);
     try {
@@ -154,6 +266,7 @@ export default function ClientsPage() {
     }
   };
 
+  /* ---------- Delete (unchanged logic) ---------- */
   const handleDelete = async () => {
     if (!deleteTarget) return;
     const id = deleteTarget._id;
@@ -174,8 +287,9 @@ export default function ClientsPage() {
     }
   };
 
+  /* ---------- Render ---------- */
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <DeleteConfirmModal
         open={!!deleteTarget}
         onOpenChange={(v) => { if (!v) setDeleteTarget(null); }}
@@ -185,42 +299,70 @@ export default function ClientsPage() {
         isDeleting={!!deletingId}
       />
 
-      <div>
-        <h1 className="text-2xl md:text-3xl font-semibold text-[#1A1A1A]">Clients</h1>
-        <p className="text-sm md:text-base text-[#1A1A1A]/60 mt-0.5">Manage preset client info to auto-fill invoices.</p>
+      {/* Page header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <nav className="mb-1 flex items-center gap-1.5 text-xs font-medium text-slate-400">
+            <span>Manage</span>
+            <span aria-hidden="true">/</span>
+            <span className="text-slate-600">Clients</span>
+          </nav>
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-900 md:text-3xl">
+            Clients
+          </h1>
+          <p className="mt-1 text-sm text-slate-500 md:text-base">
+            Manage preset client info to auto-fill invoices.
+          </p>
+        </div>
+        {isSuperAdmin && !showAdd && (
+          <Button
+            onClick={() => setShowAdd(true)}
+            className="gap-2 self-start rounded-lg bg-[#5A378F] text-white shadow-[0_2px_8px_-2px_rgba(90,55,143,0.5)] hover:bg-[#4a2d7a] sm:self-auto"
+          >
+            <Plus className="h-4 w-4" />
+            Add Client
+          </Button>
+        )}
       </div>
 
-      <div className="bg-white rounded-xl border border-[#E8E8E8]">
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 pt-5 pb-4">
-          <h2 className="text-base md:text-lg font-semibold text-[#1A1A1A]">
+      {/* Main card */}
+      <div className="overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-[0_1px_3px_-1px_rgba(15,23,42,0.06)]">
+        {/* Toolbar */}
+        <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
+          <h2 className="text-base font-semibold text-slate-900">
             All Clients
-            {!loading && <span className="ml-2 text-sm font-normal text-[#1A1A1A]/40">({clients.length})</span>}
-          </h2>
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#1A1A1A]/30 pointer-events-none" />
-              <input
-                type="text"
-                placeholder="Search clients..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-8 pr-4 py-2 text-sm border border-[#E8E8E8] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A378F]/20 focus:border-[#5A378F]/40 w-48 bg-[#F0F0F0]/50 text-[#1A1A1A] placeholder:text-[#1A1A1A]/30"
-              />
-            </div>
-            {isSuperAdmin && !showAdd && (
-              <Button onClick={() => setShowAdd(true)} className="rounded-lg bg-[#5A378F] hover:bg-[#4a2d7a] text-white gap-2">
-                <Plus className="h-4 w-4" />Add Client
-              </Button>
+            {!loading && (
+              <span className="ml-2 text-sm font-normal text-slate-400">
+                ({clients.length})
+              </span>
             )}
+          </h2>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search clients…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className={cn(
+                "w-56 rounded-lg border border-slate-200 bg-slate-50/60 py-2 pl-8 pr-3 text-sm text-slate-700 placeholder:text-slate-400 transition-all",
+                "focus:border-[#5A378F]/40 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#5A378F]/20"
+              )}
+              aria-label="Search clients"
+            />
           </div>
         </div>
 
         {/* Add form */}
         {showAdd && isSuperAdmin && (
-          <div className="px-5 pb-5 border-b border-[#F0F0F0]">
-            <div className="bg-[#EEEDFE]/40 rounded-xl p-5 border border-[#AFA9EC]/30">
-              <h3 className="text-sm font-semibold text-[#1A1A1A] mb-4">New Client</h3>
+          <div className="border-b border-slate-100 bg-[#EEEDFE]/30 px-5 py-5">
+            <div className="rounded-xl border border-[#5A378F]/15 bg-white p-5">
+              <div className="mb-4 flex items-center gap-2">
+                <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[#5A378F]/10 text-[#5A378F]">
+                  <User className="h-4 w-4" aria-hidden="true" />
+                </span>
+                <h3 className="text-sm font-semibold text-slate-900">New Client</h3>
+              </div>
               <ClientForm
                 initial={EMPTY_FORM}
                 onSave={handleAdd}
@@ -232,11 +374,12 @@ export default function ClientsPage() {
         )}
 
         {/* Client list */}
-        <div className="divide-y divide-[#F0F0F0]">
+        <div className="divide-y divide-slate-100">
           {loading ? (
             Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="px-6 py-5 flex items-start justify-between gap-4">
-                <div className="space-y-2 flex-1">
+              <div key={i} className="flex items-start gap-4 px-5 py-5">
+                <Skeleton className="h-11 w-11 shrink-0 rounded-full" />
+                <div className="flex-1 space-y-2">
                   <Skeleton className="h-4 w-40" />
                   <Skeleton className="h-3 w-60" />
                   <Skeleton className="h-3 w-48" />
@@ -245,15 +388,41 @@ export default function ClientsPage() {
               </div>
             ))
           ) : filtered.length === 0 ? (
-            <div className="py-16 text-center text-[#1A1A1A]/30 text-sm md:text-base">
-              {search ? "No clients match your search." : "No clients yet. Add your first client above."}
+            <div className="flex flex-col items-center justify-center gap-3 px-6 py-20 text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
+                <Inbox className="h-7 w-7" aria-hidden="true" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-slate-700">
+                  {search ? "No clients match your search" : "No clients yet"}
+                </p>
+                <p className="mt-1 text-xs text-slate-400">
+                  {search
+                    ? "Try a different name, company, or email."
+                    : "Add your first client to auto-fill invoices faster."}
+                </p>
+              </div>
+              {isSuperAdmin && !search && !showAdd && (
+                <Button
+                  onClick={() => setShowAdd(true)}
+                  className="mt-2 gap-1.5 rounded-lg bg-[#5A378F] text-white hover:bg-[#4a2d7a]"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Add Client
+                </Button>
+              )}
             </div>
           ) : (
             filtered.map((client) => (
-              <div key={client._id} className="px-6 py-5">
+              <div key={client._id} className="px-5 py-5">
                 {editingId === client._id ? (
-                  <div className="bg-amber-50/60 rounded-xl p-5 border border-amber-100">
-                    <h3 className="text-sm font-semibold text-gray-800 mb-4">Edit Client</h3>
+                  <div className="rounded-xl border border-amber-200/70 bg-amber-50/40 p-5">
+                    <div className="mb-4 flex items-center gap-2">
+                      <span className="flex h-7 w-7 items-center justify-center rounded-md bg-amber-200/60 text-amber-800">
+                        <Edit className="h-4 w-4" aria-hidden="true" />
+                      </span>
+                      <h3 className="text-sm font-semibold text-slate-900">Edit Client</h3>
+                    </div>
                     <ClientForm
                       initial={{
                         name: client.name,
@@ -268,52 +437,69 @@ export default function ClientsPage() {
                     />
                   </div>
                 ) : (
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="space-y-1.5 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="font-semibold text-[#1A1A1A] truncate">{client.name}</p>
+                  <div className="flex items-start gap-4">
+                    <ClientAvatar name={client.name} companyName={client.companyName} />
+
+                    <div className="min-w-0 flex-1 space-y-1.5">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-semibold text-slate-900">{client.name}</p>
                         {client.companyName && (
-                          <span className="flex items-center gap-1 text-xs text-[#1A1A1A]/50 bg-[#F0F0F0] px-2 py-0.5 rounded-full shrink-0">
-                            <Building2 className="h-3 w-3" />{client.companyName}
+                          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
+                            <Building2 className="h-3 w-3" aria-hidden="true" />
+                            {client.companyName}
                           </span>
                         )}
                       </div>
-                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm md:text-base text-[#1A1A1A]/50">
+                      <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-slate-500">
                         {client.email && (
-                          <span className="flex items-center gap-1.5">
-                            <Mail className="h-3.5 w-3.5 text-[#1A1A1A]/30" />{client.email}
-                          </span>
+                          <a
+                            href={`mailto:${client.email}`}
+                            className="inline-flex items-center gap-1.5 transition-colors hover:text-[#5A378F]"
+                          >
+                            <Mail className="h-3.5 w-3.5 text-slate-400" aria-hidden="true" />
+                            <span className="font-mono text-xs">{client.email}</span>
+                          </a>
                         )}
                         {client.phone && (
-                          <span className="flex items-center gap-1.5">
-                            <Phone className="h-3.5 w-3.5 text-[#1A1A1A]/30" />{client.phone}
-                          </span>
+                          <a
+                            href={`tel:${client.phone}`}
+                            className="inline-flex items-center gap-1.5 transition-colors hover:text-[#5A378F]"
+                          >
+                            <Phone className="h-3.5 w-3.5 text-slate-400" aria-hidden="true" />
+                            <span className="font-mono text-xs">{client.phone}</span>
+                          </a>
                         )}
                         {client.address && (
-                          <span className="flex items-center gap-1.5">
-                            <MapPin className="h-3.5 w-3.5 text-[#1A1A1A]/30" />{client.address}
+                          <span className="inline-flex items-center gap-1.5">
+                            <MapPin className="h-3.5 w-3.5 text-slate-400" aria-hidden="true" />
+                            <span className="truncate">{client.address}</span>
                           </span>
                         )}
                       </div>
                     </div>
+
                     {isSuperAdmin && (
-                      <div className="flex items-center gap-1 shrink-0">
+                      <div className="flex shrink-0 items-center gap-0.5">
                         <button
                           onClick={() => setEditingId(client._id)}
-                          className="p-1.5 rounded-lg hover:bg-[#F0F0F0] transition-colors"
+                          className="rounded-md p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5A378F]/30"
                           title="Edit"
+                          aria-label={`Edit ${client.name}`}
                         >
-                          <Edit className="h-4 w-4 text-[#1A1A1A]/50" />
+                          <Edit className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => setDeleteTarget(client)}
                           disabled={deletingId === client._id}
-                          className="p-1.5 rounded-lg hover:bg-[#FBEAF0] transition-colors disabled:opacity-50"
+                          className="rounded-md p-1.5 text-[#EA2B7B] transition-colors hover:bg-[#FBEAF0] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#EA2B7B]/30"
                           title="Delete"
+                          aria-label={`Delete ${client.name}`}
                         >
-                          {deletingId === client._id
-                            ? <Spinner className="h-4 w-4 text-red-400" />
-                            : <Trash2 className="h-4 w-4 text-[#EA2B7B]" />}
+                          {deletingId === client._id ? (
+                            <Spinner className="h-4 w-4 text-[#EA2B7B]" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
                         </button>
                       </div>
                     )}
@@ -323,6 +509,17 @@ export default function ClientsPage() {
             ))
           )}
         </div>
+
+        {/* Footer */}
+        {!loading && filtered.length > 0 && (
+          <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/40 px-5 py-3 text-xs text-slate-500 md:text-sm">
+            <span>
+              Showing <span className="font-semibold text-slate-700">{filtered.length}</span> of{" "}
+              <span className="font-semibold text-slate-700">{clients.length}</span> client
+              {clients.length !== 1 ? "s" : ""}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );

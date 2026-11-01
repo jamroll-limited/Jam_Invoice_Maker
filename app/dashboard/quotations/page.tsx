@@ -6,8 +6,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
   Plus, Search, SlidersHorizontal, ArrowUpDown, ArrowUp, ArrowDown,
-  MoreHorizontal, Eye, Edit, Trash2,
-  ChevronDown,
+  MoreHorizontal, Eye, Edit, Trash2, ChevronDown, FileCheck, Inbox,
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -15,17 +14,21 @@ import { InvoiceFormData } from "@/types/invoice";
 import { Spinner } from "@/components/ui/spinner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
+import { cn } from "@/lib/utils";
 
 type Quotation = InvoiceFormData & { _id: string; createdAt: string };
 type SortField = "invoiceNumber" | "clientName" | "date" | "total";
 type SortDir = "asc" | "desc";
 type TabFilter = "all" | "Unpaid" | "Paid" | "Hold" | "Cancelled";
 
+/* ------------------------------------------------------------------ */
+/*  Status visual config — quotation-specific labels                   */
+/* ------------------------------------------------------------------ */
 const STATUS_BADGE: Record<string, { label: string; className: string }> = {
-  Paid: { label: "Accepted", className: "bg-[#E1F5EE] text-[#085041]" },
-  Unpaid: { label: "Pending", className: "bg-[#EEEDFE] text-[#3C3489]" },
-  Hold: { label: "Draft", className: "bg-[#FFF8E1] text-[#7A5C00]" },
-  Cancelled: { label: "Cancelled", className: "bg-[#FBEAF0] text-[#72243E]" },
+  Paid: { label: "Accepted", className: "bg-[#E1F5EE] text-[#085041] ring-[#51B9A9]/20" },
+  Unpaid: { label: "Pending", className: "bg-[#EEEDFE] text-[#3C3489] ring-[#5A378F]/20" },
+  Hold: { label: "Draft", className: "bg-[#FFF8E1] text-[#7A5C00] ring-[#E0B400]/20" },
+  Cancelled: { label: "Cancelled", className: "bg-[#FBEAF0] text-[#72243E] ring-[#EA2B7B]/20" },
 };
 
 const SELECT_CLASS: Record<string, string> = {
@@ -42,7 +45,9 @@ const TAB_BADGE: Record<string, string> = {
   Cancelled: "bg-[#FBEAF0] text-[#72243E]",
 };
 
-// ── 3-dot Row Menu ────────────────────────────────────────────────────────────
+/* ------------------------------------------------------------------ */
+/*  3-dot Row Menu                                                     */
+/* ------------------------------------------------------------------ */
 function RowMenu({
   onDraft,
   onDelete,
@@ -70,28 +75,41 @@ function RowMenu({
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="p-1.5 rounded-lg hover:bg-[#F0F0F0] transition-colors"
+        className="rounded-md p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5A378F]/30"
+        aria-label="Row actions"
+        aria-haspopup="menu"
+        aria-expanded={open}
       >
-        <MoreHorizontal className="h-4 w-4 text-[#1A1A1A]/30" />
+        <MoreHorizontal className="h-4 w-4" />
       </button>
       {open && (
         <div
-          className={`absolute right-0 ${openUp ? "bottom-full mb-1" : "top-full -mt-3"
-            } w-40 bg-white border border-[#E8E8E8] rounded-xl shadow-xl z-[150] overflow-hidden`}
+          role="menu"
+          className={cn(
+            "absolute right-0 z-50 w-44 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-[0_8px_24px_-8px_rgba(15,23,42,0.18)]",
+            openUp ? "bottom-full mb-1.5" : "top-full mt-1.5"
+          )}
         >
           <button
+            role="menuitem"
             onClick={() => { onDraft(); setOpen(false); }}
-            className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-[#1A1A1A]/70 hover:bg-[#F0F0F0] text-left"
+            className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-sm text-slate-700 transition-colors hover:bg-slate-50"
           >
-            <Edit className="h-3.5 w-3.5 text-[#1A1A1A]/40" />
+            <Edit className="h-3.5 w-3.5 text-slate-500" />
             Mark as Draft
           </button>
+          <div className="my-1 h-px bg-slate-100" />
           <button
+            role="menuitem"
             onClick={() => { onDelete(); setOpen(false); }}
             disabled={isDeleting}
-            className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-[#72243E] hover:bg-[#FBEAF0] text-left disabled:opacity-50"
+            className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-sm text-[#72243E] transition-colors hover:bg-[#FBEAF0] disabled:opacity-50"
           >
-            {isDeleting ? <Spinner className="h-3.5 w-3.5 text-[#EA2B7B]" /> : <Trash2 className="h-3.5 w-3.5" />}
+            {isDeleting ? (
+              <Spinner className="h-3.5 w-3.5 text-[#EA2B7B]" />
+            ) : (
+              <Trash2 className="h-3.5 w-3.5" />
+            )}
             {isDeleting ? "Deleting…" : "Delete"}
           </button>
         </div>
@@ -100,19 +118,35 @@ function RowMenu({
   );
 }
 
-// ── Sort button ───────────────────────────────────────────────────────────────
+/* ------------------------------------------------------------------ */
+/*  Sort button                                                        */
+/* ------------------------------------------------------------------ */
 function SortBtn({
-  field, active, dir, onClick,
-}: { field: SortField; active: SortField; dir: SortDir; onClick: () => void }) {
+  field,
+  active,
+  dir,
+  onClick,
+}: {
+  field: SortField;
+  active: SortField;
+  dir: SortDir;
+  onClick: () => void;
+}) {
   const Icon = active !== field ? ArrowUpDown : dir === "asc" ? ArrowUp : ArrowDown;
   return (
-    <button onClick={onClick} className="flex items-center gap-0.5 group">
-      <Icon className={`h-3 w-3 ${active === field ? "text-[#5A378F]" : "text-[#1A1A1A]/20 group-hover:text-[#1A1A1A]/40"}`} />
+    <button
+      onClick={onClick}
+      className="ml-1 rounded p-0.5 text-slate-300 transition-colors hover:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5A378F]/30"
+      aria-label={`Sort by ${field}, ${active === field ? dir : "inactive"}`}
+    >
+      <Icon className={cn("h-3 w-3", active === field && "text-[#5A378F]")} />
     </button>
   );
 }
 
-// ── Main Page ─────────────────────────────────────────────────────────────────
+/* ------------------------------------------------------------------ */
+/*  Main page                                                          */
+/* ------------------------------------------------------------------ */
 export default function QuotationsPage() {
   const { data: session } = useSession();
   const isSuperAdmin = session?.user?.role === "Super Admin";
@@ -127,8 +161,9 @@ export default function QuotationsPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Quotation | null>(null);
 
+  /* ---------- Data fetching (unchanged) ---------- */
   useEffect(() => {
-    fetch("/api/invoices?type=quotation") // 👈 Changed type
+    fetch("/api/invoices?type=quotation")
       .then(async (r) => {
         if (!r.ok) {
           const err = await r.json();
@@ -146,8 +181,9 @@ export default function QuotationsPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  /* ---------- Status change (unchanged logic) ---------- */
   const handleStatusChange = async (id: string, status: string) => {
-    setQuotations((prev) => prev.map((q) => q._id === id ? { ...q, status: status as any } : q));
+    setQuotations((prev) => prev.map((q) => (q._id === id ? { ...q, status: status as any } : q)));
     try {
       const res = await fetch(`/api/invoices/${id}`, {
         method: "PATCH",
@@ -160,6 +196,7 @@ export default function QuotationsPage() {
     }
   };
 
+  /* ---------- Delete (unchanged logic) ---------- */
   const handleDelete = async () => {
     if (!deleteTarget) return;
     const id = deleteTarget._id;
@@ -168,7 +205,11 @@ export default function QuotationsPage() {
       const res = await fetch(`/api/invoices/${id}`, { method: "DELETE" });
       if (res.ok) {
         setQuotations((prev) => prev.filter((q) => q._id !== id));
-        setSelected((prev) => { const next = new Set(prev); next.delete(id); return next; });
+        setSelected((prev) => {
+          const next = new Set(prev);
+          next.delete(id);
+          return next;
+        });
         setDeleteTarget(null);
         toast.success("Quotation moved to trash");
       } else {
@@ -181,13 +222,17 @@ export default function QuotationsPage() {
     }
   };
 
-  const tabCounts = useMemo(() => ({
-    all: quotations.length,
-    Unpaid: quotations.filter((q) => q.status === "Unpaid").length,
-    Paid: quotations.filter((q) => q.status === "Paid").length,
-    Hold: quotations.filter((q) => q.status === "Hold").length,
-    Cancelled: quotations.filter((q) => q.status === "Cancelled").length,
-  }), [quotations]);
+  /* ---------- Derived (unchanged) ---------- */
+  const tabCounts = useMemo(
+    () => ({
+      all: quotations.length,
+      Unpaid: quotations.filter((q) => q.status === "Unpaid").length,
+      Paid: quotations.filter((q) => q.status === "Paid").length,
+      Hold: quotations.filter((q) => q.status === "Hold").length,
+      Cancelled: quotations.filter((q) => q.status === "Cancelled").length,
+    }),
+    [quotations]
+  );
 
   const filtered = useMemo(() => {
     let list = [...quotations];
@@ -198,7 +243,7 @@ export default function QuotationsPage() {
         (q) =>
           q.invoiceNumber.toLowerCase().includes(sq) ||
           q.to.name.toLowerCase().includes(sq) ||
-          (q.to.email ?? "").toLowerCase().includes(sq),
+          (q.to.email ?? "").toLowerCase().includes(sq)
       );
     }
     list.sort((a, b) => {
@@ -220,7 +265,11 @@ export default function QuotationsPage() {
   };
 
   const toggleSelect = (id: string) =>
-    setSelected((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
 
   const allChecked = filtered.length > 0 && selected.size === filtered.length;
   const toggleAll = () =>
@@ -234,8 +283,9 @@ export default function QuotationsPage() {
     { key: "Cancelled", label: "Cancelled" },
   ];
 
+  /* ---------- Render ---------- */
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <DeleteConfirmModal
         open={!!deleteTarget}
         onOpenChange={(v) => { if (!v) setDeleteTarget(null); }}
@@ -245,31 +295,37 @@ export default function QuotationsPage() {
         isDeleting={!!deletingId}
       />
 
-      <div>
-        <h1 className="text-2xl md:text-3xl font-semibold text-[#1A1A1A]">Quotations</h1>
-        <p className="text-sm md:text-base text-[#1A1A1A]/60 mt-0.5">Manage and track all your quotations.</p>
+      {/* Page header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <nav className="mb-1 flex items-center gap-1.5 text-xs font-medium text-slate-400">
+            <span>Billing</span>
+            <span aria-hidden="true">/</span>
+            <span className="text-slate-600">Quotations</span>
+          </nav>
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-900 md:text-3xl">
+            Quotations
+          </h1>
+          <p className="mt-1 text-sm text-slate-500 md:text-base">
+            Manage and track all your quotations in one place.
+          </p>
+        </div>
+        {isSuperAdmin && (
+          <Button asChild className="gap-2 self-start rounded-lg bg-[#5A378F] text-white shadow-[0_2px_8px_-2px_rgba(90,55,143,0.5)] hover:bg-[#4a2d7a] sm:self-auto">
+            <Link href="/dashboard/quotations/create">
+              <Plus className="h-4 w-4" />
+              New Quotation
+            </Link>
+          </Button>
+        )}
       </div>
 
-      <div className="bg-white rounded-xl border border-[#E8E8E8]">
-
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 pt-5 pb-4">
-          <h2 className="text-base md:text-lg font-semibold text-[#1A1A1A]">
-            All Quotations
-            {!loading && <span className="ml-2 text-sm font-normal text-[#1A1A1A]/40">({quotations.length})</span>}
-          </h2>
-          {isSuperAdmin && (
-            <Button asChild className="rounded-lg bg-[#5A378F] hover:bg-[#4a2d7a] text-white gap-2">
-              <Link href="/dashboard/quotations/create">
-                <Plus className="h-4 w-4" />New Quotation
-              </Link>
-            </Button>
-          )}
-        </div>
-
-        {/* Tabs + Search */}
-        <div className="flex items-center justify-between px-5 pb-3 gap-4 flex-wrap border-b border-[#F0F0F0]">
-          <div className="flex items-center gap-1">
+      {/* Main card */}
+      <div className="overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-[0_1px_3px_-1px_rgba(15,23,42,0.06)]">
+        {/* Toolbar: tabs + search */}
+        <div className="flex flex-col gap-3 border-b border-slate-100 px-5 pt-4 pb-3 lg:flex-row lg:items-center lg:justify-between">
+          {/* Tabs */}
+          <div className="flex items-center gap-1 overflow-x-auto">
             {tabs.map((tab) => {
               const count = tabCounts[tab.key];
               const isActive = activeTab === tab.key;
@@ -277,49 +333,71 @@ export default function QuotationsPage() {
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className={`relative flex items-center gap-1.5 px-3 py-2.5 text-sm md:text-base font-medium transition-colors ${isActive ? "text-[#1A1A1A]" : "text-[#1A1A1A]/40 hover:text-[#1A1A1A]/60"
-                    }`}
+                  className={cn(
+                    "relative flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all",
+                    isActive
+                      ? "bg-slate-100 text-slate-900"
+                      : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+                  )}
+                  aria-current={isActive ? "page" : undefined}
                 >
                   {tab.label}
                   {tab.key !== "all" && count > 0 && (
-                    <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold leading-none ${isActive ? "bg-[#5A378F] text-white" : TAB_BADGE[tab.key]
-                      }`}>{count}</span>
+                    <span
+                      className={cn(
+                        "rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none",
+                        isActive ? "bg-[#5A378F] text-white" : TAB_BADGE[tab.key]
+                      )}
+                    >
+                      {count}
+                    </span>
                   )}
-                  {isActive && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#5A378F] rounded-full" />}
                 </button>
               );
             })}
           </div>
 
+          {/* Search + Filter */}
           <div className="flex items-center gap-2">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#1A1A1A]/30 pointer-events-none" />
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
               <input
-                type="text" placeholder="Search..." value={search}
+                type="text"
+                placeholder="Search quotations, clients…"
+                value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-8 pr-4 py-2 text-sm border border-[#E8E8E8] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A378F]/20 focus:border-[#5A378F]/40 w-48 bg-[#F0F0F0]/50 text-[#1A1A1A] placeholder:text-[#1A1A1A]/30"
+                className={cn(
+                  "w-56 rounded-lg border border-slate-200 bg-slate-50/60 py-2 pl-8 pr-3 text-sm text-slate-700 placeholder:text-slate-400 transition-all",
+                  "focus:border-[#5A378F]/40 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#5A378F]/20"
+                )}
               />
             </div>
-            <button className="flex items-center gap-1.5 px-3 py-2 border border-[#E8E8E8] rounded-lg text-sm text-[#1A1A1A]/60 hover:bg-[#F0F0F0] transition-colors">
-              <SlidersHorizontal className="h-4 w-4" /> Filter
+            <button
+              className={cn(
+                "flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 transition-colors",
+                "hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5A378F]/30"
+              )}
+            >
+              <SlidersHorizontal className="h-3.5 w-3.5" />
+              Filter
             </button>
           </div>
         </div>
 
         {/* Table */}
-        <div>
+        <div className="w-full overflow-x-auto">
           {loading ? (
-            <table className="w-full text-sm md:text-base">
+            <table className="w-full min-w-[1100px] text-sm">
               <thead>
-                <tr className="bg-[#F0F0F0]/60 border-t border-[#E8E8E8]">
+                <tr className="border-t border-slate-100 bg-slate-50/50">
                   {["", "Quotation ID", "Client", "Email", "Date", "Amount", "Status", ""].map((h, i) => (
-                    <th key={i} className="px-3 py-3 first:pl-5 last:pr-5">
+                    <th key={i} className="px-3 py-3 first:pl-5 last:pr-5 text-left">
                       {h && <Skeleton className="h-3 w-16" />}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#F0F0F0]">
+              <tbody className="divide-y divide-slate-100">
                 {[
                   ["w-4", "w-20", "w-28", "w-32", "w-20", "w-16", "w-14", "w-16"],
                   ["w-4", "w-24", "w-24", "w-36", "w-20", "w-16", "w-16", "w-16"],
@@ -327,10 +405,10 @@ export default function QuotationsPage() {
                   ["w-4", "w-24", "w-20", "w-32", "w-20", "w-16", "w-16", "w-16"],
                   ["w-4", "w-20", "w-28", "w-24", "w-20", "w-14", "w-14", "w-16"],
                 ].map((widths, ri) => (
-                  <tr key={ri} className="border-t border-gray-50">
+                  <tr key={ri}>
                     {widths.map((w, ci) => (
-                      <td key={ci} className="px-3 py-4 first:pl-6 last:pr-6">
-                        <Skeleton className={`h-4 ${w}`} />
+                      <td key={ci} className="px-3 py-4 first:pl-5 last:pr-5">
+                        <Skeleton className={cn("h-4", w)} />
                       </td>
                     ))}
                   </tr>
@@ -338,101 +416,190 @@ export default function QuotationsPage() {
               </tbody>
             </table>
           ) : filtered.length === 0 ? (
-            <div className="py-20 text-center text-[#1A1A1A]/30 text-sm md:text-base">No quotations found.</div>
+            <div className="flex flex-col items-center justify-center gap-3 px-6 py-20 text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
+                <Inbox className="h-7 w-7" aria-hidden="true" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-slate-700">No quotations found</p>
+                <p className="mt-1 text-xs text-slate-400">
+                  {search ? "Try adjusting your search or filters." : "Create your first quotation to get started."}
+                </p>
+              </div>
+            </div>
           ) : (
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[1100px] text-sm">
               <thead>
-                <tr className="bg-[#F0F0F0]/60 border-t border-[#E8E8E8]">
-                  <th className="pl-5 pr-3 py-3 w-10">
-                    <input type="checkbox" checked={allChecked} onChange={toggleAll}
-                      className="rounded border-[#E8E8E8] accent-[#5A378F] cursor-pointer" />
+                <tr className="border-t border-slate-100 bg-slate-50/50">
+                  <th className="w-10 py-3 pl-5 pr-3 text-left">
+                    <input
+                      type="checkbox"
+                      checked={allChecked}
+                      onChange={toggleAll}
+                      className="h-4 w-4 cursor-pointer rounded border-slate-300 accent-[#5A378F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5A378F]/30"
+                      aria-label="Select all rows"
+                    />
                   </th>
                   <th className="px-3 py-3 text-left">
-                    <div className="flex items-center gap-1 text-xs md:text-sm font-semibold text-[#1A1A1A]/40 uppercase tracking-wider">
-                      Quotation ID <SortBtn field="invoiceNumber" active={sortField} dir={sortDir} onClick={() => handleSort("invoiceNumber")} />
+                    <div className="flex items-center text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-400">
+                      Quotation ID
+                      <SortBtn field="invoiceNumber" active={sortField} dir={sortDir} onClick={() => handleSort("invoiceNumber")} />
                     </div>
                   </th>
                   <th className="px-3 py-3 text-left">
-                    <div className="flex items-center gap-1 text-xs md:text-sm font-semibold text-[#1A1A1A]/40 uppercase tracking-wider">
-                      Client <SortBtn field="clientName" active={sortField} dir={sortDir} onClick={() => handleSort("clientName")} />
+                    <div className="flex items-center text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-400">
+                      Client
+                      <SortBtn field="clientName" active={sortField} dir={sortDir} onClick={() => handleSort("clientName")} />
                     </div>
                   </th>
-                  <th className="px-3 py-3 text-left text-xs md:text-sm font-semibold text-[#1A1A1A]/40 uppercase tracking-wider">Email</th>
-                  <th className="px-3 py-3 text-left">
-                    <div className="flex items-center gap-1 text-xs md:text-sm font-semibold text-[#1A1A1A]/40 uppercase tracking-wider">
-                      Date <SortBtn field="date" active={sortField} dir={sortDir} onClick={() => handleSort("date")} />
-                    </div>
+                  <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-400">
+                    Email
                   </th>
                   <th className="px-3 py-3 text-left">
-                    <div className="flex items-center gap-1 text-xs md:text-sm font-semibold text-[#1A1A1A]/40 uppercase tracking-wider">
-                      Amount <SortBtn field="total" active={sortField} dir={sortDir} onClick={() => handleSort("total")} />
+                    <div className="flex items-center text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-400">
+                      Date
+                      <SortBtn field="date" active={sortField} dir={sortDir} onClick={() => handleSort("date")} />
                     </div>
                   </th>
-                  <th className="px-3 py-3 text-left text-xs md:text-sm font-semibold text-[#1A1A1A]/40 uppercase tracking-wider">Status</th>
-                  <th className="pr-6 pl-3 py-3 text-xs md:text-sm font-semibold text-[#1A1A1A]/40 uppercase tracking-wider text-right">Actions</th>
+                  <th className="px-3 py-3 text-left">
+                    <div className="flex items-center text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-400">
+                      Amount
+                      <SortBtn field="total" active={sortField} dir={sortDir} onClick={() => handleSort("total")} />
+                    </div>
+                  </th>
+                  <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-400">
+                    Status
+                  </th>
+                  <th className="min-w-[140px] py-3 pl-3 pr-5 text-right text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-400">
+                    Actions
+                  </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#F0F0F0]">
+              <tbody className="divide-y divide-slate-100">
                 {filtered.map((q, index) => {
-                  const badge = STATUS_BADGE[q.status] ?? { label: q.status, className: "bg-gray-100 text-gray-600" };
+                  const badge = STATUS_BADGE[q.status] ?? {
+                    label: q.status,
+                    className: "bg-slate-100 text-slate-600 ring-slate-200",
+                  };
                   return (
-                    <tr key={q._id} className={`transition-colors hover:bg-[#F0F0F0]/40 ${selected.has(q._id) ? "bg-[#EEEDFE]/30" : ""}`}>
-                      <td className="pl-6 pr-3 py-4">
-                        <input type="checkbox" checked={selected.has(q._id)} onChange={() => toggleSelect(q._id)}
-                          className="rounded border-[#E8E8E8] accent-[#5A378F] cursor-pointer" />
+                    <tr
+                      key={q._id}
+                      className={cn(
+                        "group relative transition-colors hover:bg-slate-50/70",
+                        selected.has(q._id) && "bg-[#EEEDFE]/30"
+                      )}
+                    >
+                      {/* Selection */}
+                      <td className="py-3.5 pl-5 pr-3">
+                        <input
+                          type="checkbox"
+                          checked={selected.has(q._id)}
+                          onChange={() => toggleSelect(q._id)}
+                          className="h-4 w-4 cursor-pointer rounded border-slate-300 accent-[#5A378F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5A378F]/30"
+                          aria-label={`Select quotation ${q.invoiceNumber}`}
+                        />
                       </td>
-                      <td className="px-3 py-4 font-semibold text-[#1A1A1A]">{q.invoiceNumber}</td>
-                      <td className="px-3 py-4 text-[#1A1A1A]/70">{q.to.name}</td>
-                      <td className="px-3 py-4 text-[#1A1A1A]/50">{q.to.email ? `@${q.to.email}` : "—"}</td>
-                      <td className="px-3 py-4 text-[#1A1A1A]/70">{format(new Date(q.date), "dd MMM, yyyy")}</td>
-                      <td className="px-3 py-4 font-semibold text-[#51B9A9]">৳{q.total.toLocaleString("en-BD")}</td>
 
-                      <td className="px-3 py-4">
+                      {/* Quotation ID */}
+                      <td className="px-3 py-3.5">
+                        <Link
+                          href={`/dashboard/quotations/${q._id}`}
+                          className="inline-flex items-center gap-2 font-semibold text-slate-900 transition-colors hover:text-[#5A378F]"
+                        >
+                          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[#EA2B7B]/8 text-[#EA2B7B]">
+                            <FileCheck className="h-3.5 w-3.5" aria-hidden="true" />
+                          </span>
+                          {q.invoiceNumber}
+                        </Link>
+                      </td>
+
+                      {/* Client */}
+                      <td className="px-3 py-3.5 text-slate-700">{q.to.name}</td>
+
+                      {/* Email */}
+                      <td className="px-3 py-3.5 text-slate-400">
+                        {q.to.email ? (
+                          <span className="font-mono text-xs">@{q.to.email}</span>
+                        ) : (
+                          <span className="text-slate-300">—</span>
+                        )}
+                      </td>
+
+                      {/* Date */}
+                      <td className="px-3 py-3.5 text-slate-600">
+                        {format(new Date(q.date), "dd MMM, yyyy")}
+                      </td>
+
+                      {/* Amount */}
+                      <td className="px-3 py-3.5 font-semibold text-[#0E8A7C]">
+                        ৳{q.total.toLocaleString("en-BD")}
+                      </td>
+
+                      {/* Status */}
+                      <td className="px-3 py-3.5">
                         {isSuperAdmin ? (
                           <div className="relative inline-block">
                             {(() => {
-                              const style = SELECT_CLASS[q.status] ?? "bg-gray-100 text-gray-600";
-                              const textColor = style.split(" ").find(c => c.startsWith("text-")) || "text-gray-600";
-
+                              const style = SELECT_CLASS[q.status] ?? "bg-slate-100 text-slate-600";
+                              const textColor =
+                                style.split(" ").find((c) => c.startsWith("text-")) || "text-slate-600";
                               return (
                                 <>
                                   <select
                                     value={q.status}
                                     onChange={(e) => handleStatusChange(q._id, e.target.value)}
-                                    className={`appearance-none text-xs font-semibold px-2.5 py-1 pr-8 rounded-full border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#5A378F]/30 ${style}`}
+                                    className={cn(
+                                      "cursor-pointer appearance-none rounded-full border-0 py-1 pl-2.5 pr-7 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#5A378F]/30",
+                                      style
+                                    )}
+                                    aria-label={`Change status of ${q.invoiceNumber}`}
                                   >
-                                    <option value="Paid">Paid</option>
-                                    <option value="Unpaid">Due</option>
-                                    <option value="Hold">Hold</option>
-                                    <option value="Cancelled">Cancel</option>
+                                    <option value="Paid">Accepted</option>
+                                    <option value="Unpaid">Pending</option>
+                                    <option value="Hold">Draft</option>
+                                    <option value="Cancelled">Cancelled</option>
                                   </select>
-
                                   <ChevronDown
-                                    size={14}
-                                    className={`absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none ${textColor}`}
+                                    size={12}
+                                    className={cn(
+                                      "pointer-events-none absolute right-2 top-1/2 -translate-y-1/2",
+                                      textColor
+                                    )}
                                   />
                                 </>
                               );
                             })()}
                           </div>
                         ) : (
-                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${badge.className}`}>
+                          <span
+                            className={cn(
+                              "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset",
+                              badge.className
+                            )}
+                          >
                             {badge.label}
                           </span>
                         )}
                       </td>
 
-                      <td className="pr-6 pl-3 py-4">
-                        <div className="flex items-center gap-0.5 justify-end">
+                      {/* Actions */}
+                      <td className="py-3.5 pl-3 pr-5">
+                        <div className="flex items-center justify-end gap-0.5">
                           <Link href={`/dashboard/quotations/${q._id}`}>
-                            <button title="Preview" className="p-1.5 rounded-lg hover:bg-[#F0F0F0] transition-colors">
-                              <Eye className="h-4 w-4 text-[#1A1A1A]/50" />
+                            <button
+                              title="Preview"
+                              className="rounded-md p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5A378F]/30"
+                            >
+                              <Eye className="h-4 w-4" />
                             </button>
                           </Link>
                           {isSuperAdmin && (
                             <Link href={`/dashboard/quotations/${q._id}/edit`}>
-                              <button title="Edit" className="p-1.5 rounded-lg hover:bg-[#F0F0F0] transition-colors">
-                                <Edit className="h-4 w-4 text-[#1A1A1A]/50" />
+                              <button
+                                title="Edit"
+                                className="rounded-md p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5A378F]/30"
+                              >
+                                <Edit className="h-4 w-4" />
                               </button>
                             </Link>
                           )}
@@ -454,10 +621,17 @@ export default function QuotationsPage() {
           )}
         </div>
 
+        {/* Footer */}
         {!loading && filtered.length > 0 && (
-          <div className="px-5 py-3 border-t border-[#F0F0F0] text-xs md:text-sm text-[#1A1A1A]/40 flex items-center justify-between">
-            <span>Showing {filtered.length} of {quotations.length} quotation{quotations.length !== 1 ? "s" : ""}</span>
-            {selected.size > 0 && <span className="text-[#5A378F] font-semibold">{selected.size} selected</span>}
+          <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/40 px-5 py-3 text-xs text-slate-500 md:text-sm">
+            <span>
+              Showing <span className="font-semibold text-slate-700">{filtered.length}</span> of{" "}
+              <span className="font-semibold text-slate-700">{quotations.length}</span> quotation
+              {quotations.length !== 1 ? "s" : ""}
+            </span>
+            {selected.size > 0 && (
+              <span className="font-semibold text-[#5A378F]">{selected.size} selected</span>
+            )}
           </div>
         )}
       </div>

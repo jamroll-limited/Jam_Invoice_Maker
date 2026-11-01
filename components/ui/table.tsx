@@ -23,7 +23,7 @@ function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
   return (
     <thead
       data-slot="table-header"
-      className={cn("[&_tr]:border-b [&_tr]:border-[#E8E8E8]", className)}
+      className={cn("[&_tr]:border-b [&_tr]:border-slate-200", className)}
       {...props}
     />
   )
@@ -44,9 +44,8 @@ function TableFooter({ className, ...props }: React.ComponentProps<"tfoot">) {
     <tfoot
       data-slot="table-footer"
       className={cn(
-        "border-t border-[#E8E8E8] bg-[#F0F0F0]/40 font-medium [&>tr]:last:border-b-0",
+        "border-t border-slate-100 bg-slate-50/40 font-medium [&>tr]:last:border-b-0",
         className
-
       )}
       {...props}
     />
@@ -58,7 +57,7 @@ function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
     <tr
       data-slot="table-row"
       className={cn(
-        "border-b border-[#F0F0F0] transition-colors hover:bg-[#F0F0F0]/40 has-aria-expanded:bg-[#F0F0F0]/40 data-[state=selected]:bg-[#EEEDFE]/30",
+        "border-b border-slate-100 transition-colors hover:bg-slate-50/70 has-aria-expanded:bg-slate-50/70 data-[state=selected]:bg-[#EEEDFE]/30",
         className
       )}
       {...props}
@@ -71,9 +70,8 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
     <th
       data-slot="table-head"
       className={cn(
-        "h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-[#1A1A1A]/40 [&:has([role=checkbox])]:pr-0",
+        "h-10 px-2 text-left align-middle text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-400 whitespace-nowrap [&:has([role=checkbox])]:pr-0",
         className
-
       )}
       {...props}
     />
@@ -85,7 +83,7 @@ function TableCell({ className, ...props }: React.ComponentProps<"td">) {
     <td
       data-slot="table-cell"
       className={cn(
-        "p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0",
+        "p-2 align-middle whitespace-nowrap text-slate-700 [&:has([role=checkbox])]:pr-0",
         className
       )}
       {...props}
@@ -100,7 +98,7 @@ function TableCaption({
   return (
     <caption
       data-slot="table-caption"
-      className={cn("mt-4 text-sm text-[#1A1A1A]/40", className)}
+      className={cn("mt-4 text-sm text-slate-400", className)}
       {...props}
     />
   )
