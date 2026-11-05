@@ -77,6 +77,9 @@ Font.register({
   ],
 });
 
+// Wrap whole words instead of auto-hyphenating (e.g. "pay-ments").
+Font.registerHyphenationCallback((word) => [word]);
+
 type InvoicePdfDocumentProps = {
   invoice: Partial<InvoiceFormData & ServiceInvoiceFormData>;
 };
@@ -142,6 +145,18 @@ const styles = StyleSheet.create({
     fontWeight: 700,
     textTransform: "uppercase",
     marginRight: 4,
+  },
+  descriptionBox: {
+    marginBottom: 14,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: "#f3f4f6",
+    borderRadius: 2,
+  },
+  descriptionText: {
+    fontSize: 12,
+    color: "#374151",
+    lineHeight: 1.4,
   },
   datesRow: {
     flexDirection: "row",
@@ -268,6 +283,27 @@ const styles = StyleSheet.create({
   paymentDetails: {
     width: 140,
   },
+  paymentNoteColumn: {
+    width: "58%",
+    paddingRight: 12,
+  },
+  paymentNoteTitle: {
+    fontSize: 12,
+    fontWeight: 700,
+    marginBottom: 4,
+  },
+  paymentNoteText: {
+    fontSize: 10,
+    lineHeight: 1.4,
+  },
+  paymentDetailsWithNote: {
+    width: "42%",
+  },
+  paymentDetailsTitle: {
+    fontSize: 14,
+    fontWeight: 700,
+    marginBottom: 6,
+  },
   paymentLine: {
     flexDirection: "row",
     fontSize: 8,
@@ -325,6 +361,7 @@ export function createInvoicePdfDocument(
         { style: styles.content },
         pdfElement(InvoiceHeader, { invoice }),
         pdfElement(InvoiceTitle, { invoice }),
+        pdfElement(InvoiceDescription, { description: invoice.description }),
         pdfElement(InvoiceDates, { invoice }),
         isServiceInvoice
           ? pdfElement(ServiceTable, { services: invoice.services ?? [] })
@@ -375,6 +412,17 @@ function InvoiceTitle({ invoice }: InvoicePdfDocumentProps) {
     { style: styles.titleRow },
     pdfElement(Text, { style: styles.title }, invoice.name || "Invoice"),
     pdfElement(Text, { style: styles.title }, `#${invoice.invoiceNumber || "INV-001"}`),
+  );
+}
+
+function InvoiceDescription({ description }: { description?: string }) {
+  const text = description?.trim();
+  if (!text) return null;
+
+  return pdfElement(
+    View,
+    { style: styles.descriptionBox },
+    pdfElement(Text, { style: styles.descriptionText }, text),
   );
 }
 
@@ -529,25 +577,59 @@ function TotalsBlock({
           ),
         )
         : null
-      : pdfElement(
+      : pdfElement(PaymentInfoBox, { paymentInfo }),
+  );
+}
+
+function PaymentInfoBox({
+  paymentInfo,
+}: {
+  paymentInfo: ReturnType<typeof withPaymentDefaults>;
+}) {
+  const note = paymentInfo.note.trim();
+  const lines = [
+    pdfElement(PaymentLine, { key: "an", label: "Account Name:", value: paymentInfo.accountName }),
+    pdfElement(PaymentLine, { key: "ac", label: "Account Number:", value: paymentInfo.accountNumber }),
+    pdfElement(PaymentLine, { key: "bn", label: "Bank Name:", value: paymentInfo.bankName }),
+    pdfElement(PaymentLine, { key: "br", label: "Branch:", value: paymentInfo.branch }),
+    pdfElement(PaymentLine, { key: "sw", label: "SWIFT Code:", value: paymentInfo.swift }),
+    pdfElement(PaymentLine, { key: "rn", label: "Routing Number:", value: paymentInfo.routingNumber }),
+  ];
+
+  // With a note: "Note:" + text on the left, "Payment Information:" heading
+  // above the account lines on the right (matches the on-screen preview).
+  if (note) {
+    return pdfElement(
+      View,
+      { style: styles.paymentBox, wrap: false },
+      pdfElement(
         View,
-        { style: styles.paymentBox },
+        { style: [styles.paymentRow, { alignItems: "flex-start" }] },
         pdfElement(
           View,
-          { style: styles.paymentRow },
-          pdfElement(Text, { style: styles.paymentTitle }, "Payment Information:"),
-          pdfElement(
-            View,
-            { style: styles.paymentDetails },
-            pdfElement(PaymentLine, { label: "Account Name:", value: paymentInfo.accountName }),
-            pdfElement(PaymentLine, { label: "Account Number:", value: paymentInfo.accountNumber }),
-            pdfElement(PaymentLine, { label: "Bank Name:", value: paymentInfo.bankName }),
-            pdfElement(PaymentLine, { label: "Branch:", value: paymentInfo.branch }),
-            pdfElement(PaymentLine, { label: "SWIFT Code:", value: paymentInfo.swift }),
-            pdfElement(PaymentLine, { label: "Routing Number:", value: paymentInfo.routingNumber }),
-          ),
+          { style: styles.paymentNoteColumn },
+          pdfElement(Text, { style: styles.paymentNoteTitle }, "Note:"),
+          pdfElement(Text, { style: styles.paymentNoteText }, note),
+        ),
+        pdfElement(
+          View,
+          { style: styles.paymentDetailsWithNote },
+          pdfElement(Text, { style: styles.paymentDetailsTitle }, "Payment Information:"),
+          ...lines,
         ),
       ),
+    );
+  }
+
+  return pdfElement(
+    View,
+    { style: styles.paymentBox, wrap: false },
+    pdfElement(
+      View,
+      { style: styles.paymentRow },
+      pdfElement(Text, { style: styles.paymentTitle }, "Payment Information:"),
+      pdfElement(View, { style: styles.paymentDetails }, ...lines),
+    ),
   );
 }
 
@@ -648,6 +730,7 @@ function withPaymentDefaults(
     swift: paymentInfo?.swift ?? "",
     routingNumber: paymentInfo?.routingNumber ?? "",
     currency: paymentInfo?.currency ?? "USD",
+    note: paymentInfo?.note ?? "",
   };
 }
 

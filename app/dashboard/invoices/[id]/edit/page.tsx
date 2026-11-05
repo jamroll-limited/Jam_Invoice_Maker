@@ -746,6 +746,20 @@ export default function EditInvoicePage() {
                 <CreditCard className="h-3.5 w-3.5" />
                 Payment Information
               </h3>
+
+              {/* Note (full width, top) */}
+              <div className="mb-2">
+                <Field label="Note" hint="Shown on the invoice in the payment block">
+                  <Textarea
+                    value={formData.paymentInfo?.note || ""}
+                    onChange={(e) => updatePayment("note", e.target.value)}
+                    placeholder="e.g. Please make payment within 14 days of invoice date."
+                    rows={2}
+                    className={cn(inputClass, "resize-none")}
+                  />
+                </Field>
+              </div>
+
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <Field label="Currency">
                   <Input value={formData.paymentInfo?.currency} onChange={(e) => updatePayment("currency", e.target.value)} className={inputClass} />
