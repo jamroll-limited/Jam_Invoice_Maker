@@ -494,6 +494,7 @@ function PaymentInfoBlock({
     swift: string;
     routingNumber?: string;
     currency: string;
+    note?: string;
   };
 }) {
   const labelStyle: React.CSSProperties = {
@@ -511,6 +512,8 @@ function PaymentInfoBlock({
     flexDirection: "row",
     gap: "4px",
   };
+
+  const hasNote = !!paymentInfo.note?.trim();
 
   return (
     <div
@@ -531,14 +534,68 @@ function PaymentInfoBlock({
           flexDirection: "row",
           justifyContent: "space-between",
           alignItems: "center",
+          gap: "16px",
         }}
       >
-        <div>
-          <h3 style={{ fontSize: FONT_SIZES.xl, fontWeight: "bold", margin: 0 }}>
-            Payment Information:
-          </h3>
+        {/* Left: Note (60% width) — "Note:" label + text below */}
+        <div style={{ flex: "0 0 60%", maxWidth: "60%", gap: "24px" }}>
+          {hasNote ? (
+            <>
+              <h3
+                style={{
+                  fontSize: FONT_SIZES.md,
+                  fontWeight: "bold",
+                  margin: 0,
+                  marginBottom: "4px",
+                  lineHeight: 1.2,
+                  color: "white",
+                }}
+              >
+                Note:
+              </h3>
+              <p
+                style={{
+                  fontSize: FONT_SIZES.sm,
+                  color: "white",
+                  margin: 0,
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-word",
+                  lineHeight: 1.4,
+                }}
+              >
+                {paymentInfo.note}
+              </p>
+            </>
+          ) : (
+            <h3 style={{ fontSize: FONT_SIZES.xl, fontWeight: "bold", margin: 0 }}>
+              Payment Information:
+            </h3>
+          )}
         </div>
-        <div style={{ textAlign: "left", fontSize: FONT_SIZES.sm }}>
+
+        {/* Right: Payment info (35% width) — heading + account rows */}
+        <div
+          style={{
+            textAlign: "left",
+            fontSize: FONT_SIZES.sm,
+            flex: "0 0 35%",
+            maxWidth: "35%",
+          }}
+        >
+          {hasNote && (
+            <h3
+              style={{
+                fontSize: FONT_SIZES.lg,
+                fontWeight: "bold",
+                margin: 0,
+                marginBottom: "6px",
+                lineHeight: 1.2,
+                color: "white",
+              }}
+            >
+              Payment Information:
+            </h3>
+          )}
           <div style={rowStyle}>
             <p style={labelStyle}>Account Name:</p>
             <h4 style={valueStyle}>{paymentInfo.accountName}</h4>

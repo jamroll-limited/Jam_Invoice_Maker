@@ -261,6 +261,36 @@ function TitleSection({ name, invoiceNumber }: { name: string; invoiceNumber: st
 }
 
 /* ------------------------------------------------------------------ */
+/*  Description section (between title and dates)                      */
+/* ------------------------------------------------------------------ */
+function DescriptionSection({ description }: { description?: string }) {
+  if (!description?.trim()) return null;
+
+  return (
+    <div
+      style={{
+        marginBottom: "14px",
+        padding: "8px 12px",
+        background: COLORS.logoBg,
+        borderRadius: "2px",
+      }}
+    >
+      <p
+        style={{
+          margin: 0,
+          fontSize: FONT_SIZES.md,
+          color: COLORS.textPrimary,
+          whiteSpace: "pre-line",
+          lineHeight: 1.4,
+        }}
+      >
+        {description}
+      </p>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  Dates section                                                      */
 /* ------------------------------------------------------------------ */
 function DatesSection({ date, dueDate }: { date: Date; dueDate: Date }) {
@@ -535,29 +565,28 @@ function PaymentInfoBlock({
     bankName: string;
     branch: string;
     swift: string;
-    routingNumber?: string; // optional — matches Partial<ServiceInvoiceFormData>
+    routingNumber?: string;
     currency: string;
+    note?: string;
   };
 }) {
-  const labelSpanStyle: React.CSSProperties = {
+  const labelStyle: React.CSSProperties = {
     fontSize: FONT_SIZES.xs,
     color: "white",
+    margin: 0,
   };
-  const valueSpanStyle: React.CSSProperties = {
+  const valueStyle: React.CSSProperties = {
     fontSize: FONT_SIZES.xs,
     fontWeight: "bold",
-    color: "white",
+    margin: 0,
   };
-  const rowDivStyle: React.CSSProperties = { lineHeight: 1.4 };
+  const rowStyle: React.CSSProperties = {
+    display: "flex",
+    flexDirection: "row",
+    gap: "4px",
+  };
 
-  const rows: { label: string; value: string | undefined }[] = [
-    { label: "Account Name:", value: paymentInfo.accountName },
-    { label: "Account Number:", value: paymentInfo.accountNumber },
-    { label: "Bank Name:", value: paymentInfo.bankName },
-    { label: "Branch:", value: paymentInfo.branch },
-    { label: "SWIFT Code:", value: paymentInfo.swift },
-    { label: "Routing Number:", value: paymentInfo.routingNumber },
-  ];
+  const hasNote = !!paymentInfo.note?.trim();
 
   return (
     <div style={{ width: "100%" }}>
@@ -573,40 +602,100 @@ function PaymentInfoBlock({
           verticalAlign: "top",
         }}
       >
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <tbody>
-            <tr>
-              <td style={{ verticalAlign: "middle", padding: 0 }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: "16px",
+          }}
+        >
+          {/* Left: Note (60% width) — "Note:" label + text below */}
+          <div style={{ flex: "0 0 60%", maxWidth: "60%" }}>
+            {hasNote ? (
+              <>
                 <h3
                   style={{
-                    fontSize: FONT_SIZES.xl,
+                    fontSize: FONT_SIZES.md,
                     fontWeight: "bold",
                     margin: 0,
+                    marginBottom: "4px",
                     lineHeight: 1.2,
                     color: "white",
                   }}
                 >
-                  Payment Information:
+                  Note:
                 </h3>
-              </td>
-              <td
+                <p
+                  style={{
+                    fontSize: FONT_SIZES.sm,
+                    color: "white",
+                    margin: 0,
+                    whiteSpace: "pre-wrap",
+                    wordBreak: "break-word",
+                    lineHeight: 1.4,
+                  }}
+                >
+                  {paymentInfo.note}
+                </p>
+              </>
+            ) : (
+              <h3 style={{ fontSize: FONT_SIZES.xl, fontWeight: "bold", margin: 0 }}>
+                Payment Information:
+              </h3>
+            )}
+          </div>
+
+          {/* Right: Payment info (40% width) — heading + account rows */}
+          <div
+            style={{
+              textAlign: "left",
+              fontSize: FONT_SIZES.sm,
+              flex: "0 0 40%",
+              maxWidth: "40%",
+            }}
+          >
+            {hasNote && (
+              <h3
                 style={{
-                  verticalAlign: "middle",
-                  textAlign: "left",
-                  fontSize: FONT_SIZES.sm,
-                  padding: 0,
+                  fontSize: FONT_SIZES.lg,
+                  fontWeight: "bold",
+                  margin: 0,
+                  marginBottom: "6px",
+                  lineHeight: 1.2,
+                  color: "white",
                 }}
               >
-                {rows.map((r, i) => (
-                  <div key={i} style={rowDivStyle}>
-                    <span style={labelSpanStyle}>{r.label} </span>
-                    <span style={valueSpanStyle}>{r.value}</span>
-                  </div>
-                ))}
-              </td>
-            </tr>
-          </tbody>
-        </table>
+                Payment Information:
+              </h3>
+            )}
+            <div style={rowStyle}>
+              <p style={labelStyle}>Account Name:</p>
+              <h4 style={valueStyle}>{paymentInfo.accountName}</h4>
+            </div>
+            <div style={rowStyle}>
+              <p style={labelStyle}>Account Number:</p>
+              <h4 style={valueStyle}>{paymentInfo.accountNumber}</h4>
+            </div>
+            <div style={rowStyle}>
+              <p style={labelStyle}>Bank Name:</p>
+              <h4 style={valueStyle}>{paymentInfo.bankName}</h4>
+            </div>
+            <div style={rowStyle}>
+              <p style={labelStyle}>Branch:</p>
+              <h4 style={valueStyle}>{paymentInfo.branch}</h4>
+            </div>
+            <div style={rowStyle}>
+              <p style={labelStyle}>SWIFT Code:</p>
+              <h4 style={valueStyle}>{paymentInfo.swift}</h4>
+            </div>
+            <div style={rowStyle}>
+              <p style={labelStyle}>Routing Number:</p>
+              <h4 style={valueStyle}>{paymentInfo.routingNumber}</h4>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -620,6 +709,7 @@ export const ServiceInvoicePreview = forwardRef<HTMLDivElement, ServiceInvoicePr
     const {
       invoiceNumber = "INV2-001",
       name = "Invoice",
+      description,
       logoUrl,
       from = { name: "", email: "", phone: "", address: "" },
       to = { name: "", email: "", phone: "", address: "" },
@@ -662,6 +752,7 @@ export const ServiceInvoicePreview = forwardRef<HTMLDivElement, ServiceInvoicePr
               <div style={{ flex: 1, overflow: "hidden" }}>
                 {page.isFirst && <HeaderSection logoUrl={logoUrl} from={from} to={to} />}
                 {page.isFirst && <TitleSection name={name} invoiceNumber={invoiceNumber} />}
+                {page.isFirst && <DescriptionSection description={description} />}
                 {page.isFirst && <DatesSection date={date} dueDate={dueDate} />}
 
                 <ServicesTable

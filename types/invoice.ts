@@ -74,6 +74,7 @@ export type InvoiceFormData = {
     swift: string;
     routingNumber?: string;
     currency: string;
+    note?: string;
   };
 
   items: InvoiceItem[];
@@ -125,6 +126,7 @@ export type ServiceInvoiceFormData = {
     swift: string;
     routingNumber?: string;
     currency: string;
+    note?: string;
   };
 
   services: ServiceGroup[];
