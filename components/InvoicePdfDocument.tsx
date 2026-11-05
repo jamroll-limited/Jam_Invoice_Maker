@@ -99,12 +99,12 @@ const styles = StyleSheet.create({
     // Footer sits at bottom: 30 and is ~60pt tall (top ≈ 90pt from the
     // page edge). Reserve extra room so content always stops with a clear
     // gap above the footer and breaks onto the next page instead.
-    paddingBottom: 150,
+    paddingBottom: 120,
     backgroundColor: "#ffffff",
     color: "#000000",
     fontFamily: "HelveticaNowDisplay",
     fontSize: 12,
-  },
+  },  
   content: {
     flexGrow: 1,
   },
@@ -130,7 +130,11 @@ const styles = StyleSheet.create({
     color: "#9ca3af",
   },
   clientBlock: {
-    width: 130,
+    width: 150,
+  },
+  fromBlock: {
+    fontSize: 11,
+    marginBottom: 12,
   },
   accentLabel: {
     color: "#5A378F",
@@ -386,6 +390,7 @@ export function createInvoicePdfDocument(
 function InvoiceHeader({ invoice }: InvoicePdfDocumentProps) {
   const logoUrl = invoice.logoUrl;
   const to = invoice.to ?? { name: "", email: "", phone: "", address: "" };
+  const from = invoice.from ?? { name: "", email: "", phone: "", address: "" };
 
   return pdfElement(
     View,
@@ -397,14 +402,26 @@ function InvoiceHeader({ invoice }: InvoicePdfDocumentProps) {
         { style: styles.logoPlaceholder },
         pdfElement(Text, { style: styles.placeholderText }, "Logo"),
       ),
+    // Right column: From (top) + To (bottom), same as the on-screen preview.
     pdfElement(
       View,
       { style: styles.clientBlock },
+      from.name?.trim()
+        ? pdfElement(
+          View,
+          { style: styles.fromBlock },
+          pdfElement(Text, { style: styles.accentLabel }, "From:"),
+          pdfElement(Text, { style: { fontWeight: 700 } }, from.name),
+          ...[from.address, from.phone, from.email]
+            .filter((line) => line?.trim())
+            .map((line, i) => pdfElement(Text, { key: `from-${i}`, style: styles.mutedText }, line)),
+        )
+        : null,
       pdfElement(Text, { style: styles.accentLabel }, "To:"),
       pdfElement(Text, { style: { fontWeight: 700 } }, to.name),
-      pdfElement(Text, { style: styles.mutedText }, to.address),
-      pdfElement(Text, { style: styles.mutedText }, to.email),
-      pdfElement(Text, { style: styles.mutedText }, to.phone),
+      ...[to.address, to.email, to.phone]
+        .filter((line) => line?.trim())
+        .map((line, i) => pdfElement(Text, { key: `to-${i}`, style: styles.mutedText }, line)),
     ),
   );
 }
@@ -579,22 +596,33 @@ function TotalsBlock({
     ),
   );
 
-  // Invoices: totals + payment box form ONE unbreakable block. If it doesn't
-  // fit in the space left on the page, the whole block moves to the next page
-  // instead of splitting (e.g. Sub-Total on one page, Grand Total on the next).
+  // Page-break rules (fill the page, but never split a section):
+  //  - The totals summary (Sub-Total … Grand Total) is one unbreakable group,
+  //    so it is never split across pages.
+  //  - The payment / notes box is its own unbreakable group.
+  //  - Each group flows independently: the totals sit right under the items
+  //    when they fit, and only the box moves to the next page if needed —
+  //    no large empty gap on the page.
+  const totalsGroup = pdfElement(View, { wrap: false }, ...totalRows);
+
   if (!isQuotation) {
     return pdfElement(
       View,
-      { style: styles.totals, wrap: false },
-      ...totalRows,
+      { style: styles.totals },
+      totalsGroup,
       pdfElement(PaymentInfoBox, { paymentInfo }),
     );
   }
 
+  // Quotation notes can be long. Keep short notes in one piece; let very long
+  // notes flow onto the next page so nothing gets clipped.
+  const notesLength = (notes?.text?.length ?? 0) + (notes?.points ?? []).join(" ").length;
+  const notesAreShort = (notes?.points?.length ?? 0) <= 10 && notesLength <= 900;
+
   const notesBox = hasNotes
     ? pdfElement(
       View,
-      { style: styles.paymentBox },
+      { style: styles.paymentBox, wrap: !notesAreShort },
       pdfElement(Text, { style: [styles.paymentTitle, { marginBottom: 6 }] }, "Notes:"),
       notes?.text
         ? pdfElement(Text, { style: { fontSize: 10, color: "white", marginBottom: notes?.points?.length ? 6 : 0 } }, notes.text)
@@ -605,21 +633,7 @@ function TotalsBlock({
     )
     : null;
 
-  // Quotation notes can be long. Keep short notes together with the totals;
-  // let very long notes flow onto the next page so nothing gets clipped.
-  const notesLength = (notes?.text?.length ?? 0) + (notes?.points ?? []).join(" ").length;
-  const notesAreShort = (notes?.points?.length ?? 0) <= 10 && notesLength <= 900;
-
-  if (!notesBox || notesAreShort) {
-    return pdfElement(View, { style: styles.totals, wrap: false }, ...totalRows, notesBox);
-  }
-
-  return pdfElement(
-    View,
-    { style: styles.totals },
-    pdfElement(View, { wrap: false }, ...totalRows),
-    notesBox,
-  );
+  return pdfElement(View, { style: styles.totals }, totalsGroup, notesBox);
 }
 
 function PaymentInfoBox({
