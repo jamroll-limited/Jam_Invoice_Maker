@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import {
   Trash2, Plus, Search, X, UserPlus, FileText, User, Package,
   StickyNote, Upload, Eye, Download, Pause, CheckCircle2, Clock,
+  Building2,
 } from "lucide-react";
 import { InvoicePreview, PAGE_WIDTH, PAGE_HEIGHT } from "@/components/InvoicePreview";
 import { InvoiceFormData } from "@/types/invoice";

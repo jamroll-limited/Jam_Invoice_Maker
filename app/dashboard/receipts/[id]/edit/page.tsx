@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import {
   Trash2, Plus, Download, ArrowLeft, Search, X, UserPlus,
   FileText, User, Package, CreditCard, UserCircle, Upload, Eye, ReceiptText,
+  Building2,
 } from "lucide-react";
 import { ReceiptPreview } from "@/components/ReceiptPreview";
 import { InvoiceFormData, ReceiptInfo, ReceiptLineItem } from "@/types/invoice";
@@ -19,6 +20,9 @@ import { ClientData } from "@/types/client";
 import { Spinner } from "@/components/ui/spinner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { CompanyData } from "@/types/company";
+import { CompanySearch } from "@/components/CompanySearch";
+import Link from "next/link";
 
 /* ------------------------------------------------------------------ */
 /*  Field wrapper                                                      */
@@ -305,6 +309,7 @@ export default function EditReceiptPage() {
   const [downloading, setDownloading] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [presetClients, setPresetClients] = useState<ClientData[]>([]);
+  const [presetCompanies, setPresetCompanies] = useState<CompanyData[]>([]);
   const [showAddClient, setShowAddClient] = useState(false);
 
   const [formData, setFormData] = useState<Partial<InvoiceFormData>>({
@@ -326,10 +331,13 @@ export default function EditReceiptPage() {
 
   /* ---------- Load preset clients (unchanged) ---------- */
   useEffect(() => {
-    fetch("/api/clients")
-      .then((r) => r.json())
-      .then((data) => {
-        if (Array.isArray(data)) setPresetClients(data);
+    Promise.all([
+      fetch("/api/clients").then((r) => r.json()),
+      fetch("/api/companies").then((r) => r.json()),
+    ])
+      .then(([clients, companies]) => {
+        if (Array.isArray(clients)) setPresetClients(clients);
+        if (Array.isArray(companies)) setPresetCompanies(companies);
       })
       .catch(() => { });
   }, []);
@@ -375,20 +383,21 @@ export default function EditReceiptPage() {
     setFormData((p) => ({
       ...p,
       to: { name: client.name, email: client.email, phone: client.phone, address: client.address },
-      from: client.from
-        ? { ...p.from, ...client.from }
-        : p.from,
-      paymentInfo: {
-        ...p.paymentInfo!,
-        accountName: client.accountName ?? p.paymentInfo?.accountName ?? "",
-        accountNumber: client.accountNumber ?? p.paymentInfo?.accountNumber ?? "",
-        bankName: client.bankName ?? p.paymentInfo?.bankName ?? "",
-        branch: client.branch ?? p.paymentInfo?.branch ?? "",
-        swift: client.swift ?? p.paymentInfo?.swift ?? "",
-        routingNumber: client.routingNumber ?? p.paymentInfo?.routingNumber ?? "",
-      },
     }));
     toast.success(`Loaded "${client.name}"`);
+  };
+
+  const applyPresetCompany = (company: CompanyData) => {
+    setFormData((p) => ({
+      ...p,
+      from: {
+        name: company.name || p.from?.name || "",
+        email: company.email || p.from?.email || "",
+        phone: company.phone || p.from?.phone || "",
+        address: company.address || p.from?.address || "",
+      },
+    }));
+    toast.success(`Loaded company "${company.name}"`);
   };
 
   const handleNewClientSaved = (client: ClientData) => {
@@ -757,9 +766,26 @@ export default function EditReceiptPage() {
               {/* From */}
               <div className="border-t border-slate-100 pt-4">
                 <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em] text-slate-400">
-                  <FileText className="h-3.5 w-3.5" />
+                  <Building2 className="h-3.5 w-3.5" />
                   Your Company (From)
                 </h3>
+
+                {/* Preset company search */}
+                <div className="mb-4">
+                  <CompanySearch
+                    companies={presetCompanies}
+                    onSelect={applyPresetCompany}
+                  />
+                  {presetCompanies.length === 0 && (
+                    <p className="mt-2 text-xs text-slate-400">
+                      No preset companies yet.{" "}
+                      <Link href="/dashboard/companies" className="font-medium text-[#5A378F] hover:underline">
+                        Add one now
+                      </Link>
+                    </p>
+                  )}
+                </div>
+
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Field label="Company Name">
                     <Input value={formData.from?.name} onChange={(e) => updateFrom("name", e.target.value)} className={inputClass} />
