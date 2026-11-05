@@ -387,20 +387,6 @@ export default function CreateInvoicePage() {
         phone: client.phone,
         address: client.address,
       },
-      // auto-fill "Your Company (From)"
-      from: client.from
-        ? { ...prev.from, ...client.from }
-        : prev.from,
-      // auto-fill bank details
-      paymentInfo: {
-        ...prev.paymentInfo!,
-        accountName: client.accountName ?? prev.paymentInfo?.accountName ?? "",
-        accountNumber: client.accountNumber ?? prev.paymentInfo?.accountNumber ?? "",
-        bankName: client.bankName ?? prev.paymentInfo?.bankName ?? "",
-        branch: client.branch ?? prev.paymentInfo?.branch ?? "",
-        swift: client.swift ?? prev.paymentInfo?.swift ?? "",
-        routingNumber: client.routingNumber ?? prev.paymentInfo?.routingNumber ?? "",
-      },
     }));
     toast.success(`Loaded "${client.name}"`);
   };

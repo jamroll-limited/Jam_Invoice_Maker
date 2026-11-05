@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import {
   Trash2, Plus, Download, ArrowLeft, Search, X, UserPlus,
   FileText, User, Package, StickyNote, Upload, Eye, FileCheck,
+  Building2,
 } from "lucide-react";
 import { InvoicePreview, PAGE_WIDTH, PAGE_HEIGHT } from "@/components/InvoicePreview";
 import { InvoiceFormData } from "@/types/invoice";
@@ -21,6 +22,9 @@ import { jsPDF } from "jspdf";
 import { Spinner } from "@/components/ui/spinner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { CompanyData } from "@/types/company";
+import { CompanySearch } from "@/components/CompanySearch";
+import Link from "next/link";
 
 /* ------------------------------------------------------------------ */
 /*  Field wrapper                                                      */
@@ -290,6 +294,7 @@ export default function EditQuotationPage() {
   const [downloading, setDownloading] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [presetClients, setPresetClients] = useState<ClientData[]>([]);
+  const [presetCompanies, setPresetCompanies] = useState<CompanyData[]>([]);
   const [showAddClient, setShowAddClient] = useState(false);
 
   const [formData, setFormData] = useState<Partial<InvoiceFormData>>({
@@ -313,8 +318,9 @@ export default function EditQuotationPage() {
     Promise.all([
       fetch(`/api/invoices/${id}`).then((r) => r.json()),
       fetch("/api/clients").then((r) => r.json()),
+      fetch("/api/companies").then((r) => r.json()),     // ← NEW
     ])
-      .then(([inv, clients]) => {
+      .then(([inv, clients, companies]) => {
         setFormData({
           ...inv,
           date: new Date(inv.date),
@@ -322,6 +328,7 @@ export default function EditQuotationPage() {
           notes: inv.notes || { text: "", points: [] },
         });
         if (Array.isArray(clients)) setPresetClients(clients);
+        if (Array.isArray(companies)) setPresetCompanies(companies);
         setPageLoading(false);
       })
       .catch(() => {
@@ -345,9 +352,6 @@ export default function EditQuotationPage() {
     setFormData((prev) => ({
       ...prev,
       to: { name: client.name, email: client.email, phone: client.phone, address: client.address },
-      from: client.from
-        ? { ...prev.from, ...client.from }
-        : prev.from,
     }));
     toast.success(`Loaded "${client.name}"`);
   };
@@ -356,6 +360,19 @@ export default function EditQuotationPage() {
     setPresetClients((prev) => [...prev, client].sort((a, b) => a.name.localeCompare(b.name)));
     applyPresetClient(client);
     setShowAddClient(false);
+  };
+
+  const applyPresetCompany = (company: CompanyData) => {
+    setFormData((prev) => ({
+      ...prev,
+      from: {
+        name: company.name || prev.from?.name || "",
+        email: company.email || prev.from?.email || "",
+        phone: company.phone || prev.from?.phone || "",
+        address: company.address || prev.from?.address || "",
+      },
+    }));
+    toast.success(`Loaded company "${company.name}"`);
   };
 
   /* ---------- Field helpers (unchanged) ---------- */
@@ -715,6 +732,26 @@ export default function EditQuotationPage() {
                       </select>
                     </Field>
                   </div>
+                </div>
+
+                {/* Preset company search */}
+                <div className="mt-4">
+                  <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em] text-slate-400">
+                    <Building2 className="h-3.5 w-3.5" />
+                    Load from Preset Company
+                  </h3>
+                  <CompanySearch
+                    companies={presetCompanies}
+                    onSelect={applyPresetCompany}
+                  />
+                  {presetCompanies.length === 0 && (
+                    <p className="mt-2 text-xs text-slate-400">
+                      No preset companies yet.{" "}
+                      <Link href="/dashboard/companies" className="font-medium text-[#5A378F] hover:underline">
+                        Add one now
+                      </Link>
+                    </p>
+                  )}
                 </div>
 
                 {/* Logo */}

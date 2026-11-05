@@ -20,6 +20,9 @@ import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
+import { CompanyData } from "@/types/company";
+import { CompanySearch } from "@/components/CompanySearch";
+import Link from "next/link";
 
 /* ------------------------------------------------------------------ */
 /*  Field wrapper — consistent label + input spacing                   */
@@ -321,6 +324,7 @@ export default function CreateQuotationPage() {
   const [downloading, setDownloading] = useState(false);
   const [savingAs, setSavingAs] = useState<string | null>(null);
   const [presetClients, setPresetClients] = useState<ClientData[]>([]);
+  const [presetCompanies, setPresetCompanies] = useState<CompanyData[]>([]);
   const [showAddClient, setShowAddClient] = useState(false);
 
   const [formData, setFormData] = useState<Partial<InvoiceFormData>>({
@@ -346,10 +350,14 @@ export default function CreateQuotationPage() {
       invoiceNumber: "QTN-" + Math.floor(Math.random() * 10000).toString().padStart(4, "0"),
       dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
     }));
-    fetch("/api/clients")
-      .then((r) => r.json())
-      .then((data) => {
-        if (Array.isArray(data)) setPresetClients(data);
+
+    Promise.all([
+      fetch("/api/clients").then((r) => r.json()),
+      fetch("/api/companies").then((r) => r.json()),
+    ])
+      .then(([clients, companies]) => {
+        if (Array.isArray(clients)) setPresetClients(clients);
+        if (Array.isArray(companies)) setPresetCompanies(companies);
       })
       .catch(() => { });
   }, []);
@@ -359,11 +367,21 @@ export default function CreateQuotationPage() {
     setFormData((prev) => ({
       ...prev,
       to: { name: client.name, email: client.email, phone: client.phone, address: client.address },
-      from: client.from
-        ? { ...prev.from, ...client.from }
-        : prev.from,
     }));
     toast.success(`Loaded "${client.name}"`);
+  };
+
+  const applyPresetCompany = (company: CompanyData) => {
+    setFormData((prev) => ({
+      ...prev,
+      from: {
+        name: company.name || prev.from?.name || "",
+        email: company.email || prev.from?.email || "",
+        phone: company.phone || prev.from?.phone || "",
+        address: company.address || prev.from?.address || "",
+      },
+    }));
+    toast.success(`Loaded company "${company.name}"`);
   };
 
   const handleNewClientSaved = (client: ClientData) => {
@@ -375,6 +393,9 @@ export default function CreateQuotationPage() {
   /* ---------- Field updaters (unchanged) ---------- */
   const updateTo = (field: string, value: string) =>
     setFormData((prev) => ({ ...prev, to: { ...prev.to!, [field]: value } }));
+
+  const updateFrom = (field: string, value: string) =>
+    setFormData((prev) => ({ ...prev, from: { ...prev.from!, [field]: value } }));
 
   /* ---------- Item handlers (unchanged) ---------- */
   const addItem = () =>
@@ -692,6 +713,50 @@ export default function CreateQuotationPage() {
                         value={formData.dueDate ? new Date(formData.dueDate).toISOString().split("T")[0] : ""}
                         onChange={(e) => setFormData({ ...formData, dueDate: new Date(e.target.value) })}
                         className={inputClass}
+                      />
+                    </Field>
+                  </div>
+                </div>
+
+                {/* From */}
+                <div className="border-t border-slate-100 pt-4">
+                  <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em] text-slate-400">
+                    <Building2 className="h-3.5 w-3.5" />
+                    Your Company (From)
+                  </h3>
+
+                  {/* Preset company search */}
+                  <div className="mb-4">
+                    <CompanySearch
+                      companies={presetCompanies}
+                      onSelect={applyPresetCompany}
+                    />
+                    {presetCompanies.length === 0 && (
+                      <p className="mt-2 text-xs text-slate-400">
+                        No preset companies yet.{" "}
+                        <Link href="/dashboard/companies" className="font-medium text-[#5A378F] hover:underline">
+                          Add one now
+                        </Link>
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <Field label="Company Name">
+                      <Input value={formData.from?.name} onChange={(e) => updateFrom("name", e.target.value)} className={inputClass} />
+                    </Field>
+                    <Field label="Email">
+                      <Input value={formData.from?.email} onChange={(e) => updateFrom("email", e.target.value)} className={inputClass} />
+                    </Field>
+                    <Field label="Phone">
+                      <Input value={formData.from?.phone} onChange={(e) => updateFrom("phone", e.target.value)} className={inputClass} />
+                    </Field>
+                    <Field label="Address">
+                      <Textarea
+                        value={formData.from?.address}
+                        onChange={(e) => updateFrom("address", e.target.value)}
+                        className={cn(inputClass, "resize-none")}
+                        rows={2}
                       />
                     </Field>
                   </div>
