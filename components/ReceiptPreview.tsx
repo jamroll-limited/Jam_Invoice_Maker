@@ -43,12 +43,12 @@ export const ReceiptPreview = forwardRef<HTMLDivElement, Props>(
       receiptInfo: ri = defaultReceiptInfo(),
     } = data;
 
-    const currency       = ri.currency || "BDT";
-    const totalDue       = (ri.lineItems || []).reduce((s, i) => s + (i.amount || 0), 0);
-    const paidAmount     = ri.paidAmount     || 0;
+    const currency = ri.currency || "BDT";
+    const totalDue = (ri.lineItems || []).reduce((s, i) => s + (i.amount || 0), 0);
+    const paidAmount = ri.paidAmount || 0;
     const receivedAmount = ri.receivedAmount || 0;
-    const currentDue     = totalDue - paidAmount - receivedAmount;
-    const wordsText      = numberToWords(Math.abs(currentDue), currency);
+    const currentDue = totalDue - paidAmount - receivedAmount;
+    const wordsText = numberToWords(Math.abs(currentDue), currency);
     const showInvCol = ri.showInvoiceNo !== false;
 
     return (
@@ -149,6 +149,24 @@ export const ReceiptPreview = forwardRef<HTMLDivElement, Props>(
               margin: "0 0 8px 0",
             }}
           />
+
+          {/* ── DESCRIPTION (optional) ─────────────────────────────────────── */}
+          {description?.trim() && (
+            <div
+              style={{
+                marginBottom: "8px",
+                padding: "6px 10px",
+                background: "#f3f4f6",
+                borderRadius: "2px",
+                fontSize: "10px",
+                color: "#374151",
+                whiteSpace: "pre-line",
+                lineHeight: 1.4,
+              }}
+            >
+              {description}
+            </div>
+          )}
 
           {/* ── BILL TO + INVOICE NO / DATE ────────────────────────────────── */}
           <div
@@ -578,9 +596,31 @@ export const ReceiptPreview = forwardRef<HTMLDivElement, Props>(
                 </div>
               )}
               {ri.receivedBy.mobile && <div>M: {ri.receivedBy.mobile}</div>}
-              
+
             </div>
           </div>
+
+          {/* ── NOTE (optional) ────────────────────────────────────────────── */}
+          {ri.note?.trim() && (
+            <div
+              style={{
+                marginTop: "12px",
+                padding: "8px 10px",
+                background: "#EEEDFE",
+                borderLeft: `3px solid ${PURPLE}`,
+                borderRadius: "2px",
+                fontSize: "10px",
+                color: "#374151",
+                whiteSpace: "pre-line",
+                lineHeight: 1.4,
+              }}
+            >
+              <div style={{ fontWeight: "bold", color: PURPLE, marginBottom: "2px" }}>
+                Note:
+              </div>
+              {ri.note}
+            </div>
+          )}
 
           {/* ── BOTTOM FOOTER ──────────────────────────────────────────────── */}
           <div style={{ flexGrow: 1 }} />

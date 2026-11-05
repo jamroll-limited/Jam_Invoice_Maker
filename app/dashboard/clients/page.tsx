@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import {
   Plus, Search, Edit, Trash2, X, Check, Building2, Mail, Phone, MapPin,
-  ContactRound, Inbox, User,
+  ContactRound, Inbox, User, Landmark,
 } from "lucide-react";
 import { ClientData } from "@/types/client";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,10 +17,30 @@ import { Spinner } from "@/components/ui/spinner";
 import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
 import { cn } from "@/lib/utils";
 
-const EMPTY_FORM = { name: "", companyName: "", email: "", phone: "", address: "" };
+/* ------------------------------------------------------------------ */
+/*  Empty form — now includes From + bank details                      */
+/* ------------------------------------------------------------------ */
+const EMPTY_FORM = {
+  name: "",
+  companyName: "",
+  email: "",
+  phone: "",
+  address: "",
+  // Your Company (From) — issuer info
+  from: { name: "", email: "", phone: "", address: "" },
+  // Bank / payment details
+  accountName: "",
+  accountNumber: "",
+  bankName: "",
+  branch: "",
+  swift: "",
+  routingNumber: "",
+};
+
+type ClientFormShape = typeof EMPTY_FORM;
 
 /* ------------------------------------------------------------------ */
-/*  Field wrapper — consistent label + input spacing                   */
+/*  Field wrapper                                                      */
 /* ------------------------------------------------------------------ */
 function Field({
   label,
@@ -43,7 +63,7 @@ function Field({
 }
 
 /* ------------------------------------------------------------------ */
-/*  Client form — add / edit                                           */
+/*  Client form — add / edit (now with From + Bank sections)           */
 /* ------------------------------------------------------------------ */
 function ClientForm({
   initial,
@@ -51,63 +71,190 @@ function ClientForm({
   onCancel,
   saving,
 }: {
-  initial: typeof EMPTY_FORM;
-  onSave: (data: typeof EMPTY_FORM) => void;
+  initial: ClientFormShape;
+  onSave: (data: ClientFormShape) => void;
   onCancel: () => void;
   saving: boolean;
 }) {
-  const [form, setForm] = useState(initial);
-  const set = (field: string, value: string) => setForm((p) => ({ ...p, [field]: value }));
+  const [form, setForm] = useState<ClientFormShape>(initial);
+
+  // supports flat fields + nested from.name / from.email / ...
+  const set = (field: string, value: string) =>
+    setForm((p) => {
+      if (field.startsWith("from.")) {
+        const key = field.split(".")[1];
+        return { ...p, from: { ...p.from, [key]: value } };
+      }
+      return { ...p, [field]: value };
+    });
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Field label="Name" required>
-          <Input
-            value={form.name}
-            onChange={(e) => set("name", e.target.value)}
-            placeholder="John Doe"
-            className="bg-slate-50/60 focus:bg-white"
-            autoFocus
-          />
-        </Field>
-        <Field label="Company Name">
-          <Input
-            value={form.companyName}
-            onChange={(e) => set("companyName", e.target.value)}
-            placeholder="Acme Corp"
-            className="bg-slate-50/60 focus:bg-white"
-          />
-        </Field>
-        <Field label="Email">
-          <Input
-            type="email"
-            value={form.email}
-            onChange={(e) => set("email", e.target.value)}
-            placeholder="john@example.com"
-            className="bg-slate-50/60 focus:bg-white"
-          />
-        </Field>
-        <Field label="Phone">
-          <Input
-            value={form.phone}
-            onChange={(e) => set("phone", e.target.value)}
-            placeholder="+1 234 567 890"
-            className="bg-slate-50/60 focus:bg-white"
-          />
-        </Field>
-        <div className="sm:col-span-2">
-          <Field label="Address">
-            <Textarea
-              value={form.address}
-              onChange={(e) => set("address", e.target.value)}
-              placeholder="123 Main St, City, Country"
-              rows={2}
-              className="bg-slate-50/60 focus:bg-white resize-none"
+      {/* ── Client info (existing block) */}
+      <div>
+        <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+          <User className="h-3.5 w-3.5" />
+          Client Info
+        </h3>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label="Name" required>
+            <Input
+              value={form.name}
+              onChange={(e) => set("name", e.target.value)}
+              placeholder="John Doe"
+              className="bg-slate-50/60 focus:bg-white"
+              autoFocus
+            />
+          </Field>
+          <Field label="Company Name">
+            <Input
+              value={form.companyName}
+              onChange={(e) => set("companyName", e.target.value)}
+              placeholder="Acme Corp"
+              className="bg-slate-50/60 focus:bg-white"
+            />
+          </Field>
+          <Field label="Email">
+            <Input
+              type="email"
+              value={form.email}
+              onChange={(e) => set("email", e.target.value)}
+              placeholder="john@example.com"
+              className="bg-slate-50/60 focus:bg-white"
+            />
+          </Field>
+          <Field label="Phone">
+            <Input
+              value={form.phone}
+              onChange={(e) => set("phone", e.target.value)}
+              placeholder="+1 234 567 890"
+              className="bg-slate-50/60 focus:bg-white"
+            />
+          </Field>
+          <div className="sm:col-span-2">
+            <Field label="Address">
+              <Textarea
+                value={form.address}
+                onChange={(e) => set("address", e.target.value)}
+                placeholder="123 Main St, City, Country"
+                rows={2}
+                className="bg-slate-50/60 focus:bg-white resize-none"
+              />
+            </Field>
+          </div>
+        </div>
+      </div>
+
+      {/* ── NEW: Your Company (From) */}
+      <div className="rounded-xl border border-slate-200 bg-slate-50/40 p-4">
+        <h3 className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+          <Building2 className="h-3.5 w-3.5" />
+          Your Company (From)
+        </h3>
+        <p className="mb-3 text-[11px] text-slate-400">
+          Auto-suggested when this client is picked in Invoices, Quotations & Receipts.
+        </p>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label="Company Name">
+            <Input
+              value={form.from.name}
+              onChange={(e) => set("from.name", e.target.value)}
+              placeholder="Your Company Ltd."
+              className="bg-white focus:bg-white"
+            />
+          </Field>
+          <Field label="Email">
+            <Input
+              type="email"
+              value={form.from.email}
+              onChange={(e) => set("from.email", e.target.value)}
+              placeholder="billing@yourcompany.com"
+              className="bg-white focus:bg-white"
+            />
+          </Field>
+          <Field label="Phone">
+            <Input
+              value={form.from.phone}
+              onChange={(e) => set("from.phone", e.target.value)}
+              placeholder="+880 1700 000 000"
+              className="bg-white focus:bg-white"
+            />
+          </Field>
+          <div className="sm:col-span-2">
+            <Field label="Address">
+              <Textarea
+                value={form.from.address}
+                onChange={(e) => set("from.address", e.target.value)}
+                placeholder="Company address"
+                rows={2}
+                className="bg-white focus:bg-white resize-none"
+              />
+            </Field>
+          </div>
+        </div>
+      </div>
+
+      {/* ── NEW: Bank / payment details */}
+      <div className="rounded-xl border border-slate-200 bg-slate-50/40 p-4">
+        <h3 className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+          <Landmark className="h-3.5 w-3.5" />
+          Bank Details
+        </h3>
+        <p className="mb-3 text-[11px] text-slate-400">
+          Auto-suggested into the Payment tab when this client is picked.
+        </p>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label="Account Name">
+            <Input
+              value={form.accountName}
+              onChange={(e) => set("accountName", e.target.value)}
+              placeholder="John Doe"
+              className="bg-white focus:bg-white"
+            />
+          </Field>
+          <Field label="Account Number">
+            <Input
+              value={form.accountNumber}
+              onChange={(e) => set("accountNumber", e.target.value)}
+              placeholder="01234567890"
+              className="bg-white focus:bg-white"
+            />
+          </Field>
+          <Field label="Bank Name">
+            <Input
+              value={form.bankName}
+              onChange={(e) => set("bankName", e.target.value)}
+              placeholder="ABC Bank"
+              className="bg-white focus:bg-white"
+            />
+          </Field>
+          <Field label="Branch">
+            <Input
+              value={form.branch}
+              onChange={(e) => set("branch", e.target.value)}
+              placeholder="Dhaka Main"
+              className="bg-white focus:bg-white"
+            />
+          </Field>
+          <Field label="SWIFT Code">
+            <Input
+              value={form.swift}
+              onChange={(e) => set("swift", e.target.value)}
+              placeholder="ABCBBDDH"
+              className="bg-white focus:bg-white"
+            />
+          </Field>
+          <Field label="Routing Number">
+            <Input
+              value={form.routingNumber}
+              onChange={(e) => set("routingNumber", e.target.value)}
+              placeholder="090000123"
+              className="bg-white focus:bg-white"
             />
           </Field>
         </div>
       </div>
+
       <div className="flex justify-end gap-2 pt-1">
         <Button
           variant="outline"
@@ -148,7 +295,6 @@ function ClientAvatar({ name, companyName }: { name: string; companyName?: strin
     .toUpperCase()
     .slice(0, 2);
 
-  // Pick a tint based on the first letter for visual variety
   const tints = [
     "bg-[#5A378F]/10 text-[#5A378F]",
     "bg-[#51B9A9]/10 text-[#0E8A7C]",
@@ -187,7 +333,7 @@ export default function ClientsPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ClientData | null>(null);
 
-  /* ---------- Data fetching (unchanged) ---------- */
+  /* ---------- Data fetching ---------- */
   useEffect(() => {
     fetch("/api/clients")
       .then(async (r) => {
@@ -208,7 +354,7 @@ export default function ClientsPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  /* ---------- Filter (unchanged logic) ---------- */
+  /* ---------- Filter ---------- */
   const filtered = clients.filter((c) => {
     const q = search.toLowerCase();
     return (
@@ -218,8 +364,8 @@ export default function ClientsPage() {
     );
   });
 
-  /* ---------- Add (unchanged logic) ---------- */
-  const handleAdd = async (data: typeof EMPTY_FORM) => {
+  /* ---------- Add ---------- */
+  const handleAdd = async (data: ClientFormShape) => {
     setSaving(true);
     try {
       const res = await fetch("/api/clients", {
@@ -242,8 +388,8 @@ export default function ClientsPage() {
     }
   };
 
-  /* ---------- Edit (unchanged logic) ---------- */
-  const handleEdit = async (id: string, data: typeof EMPTY_FORM) => {
+  /* ---------- Edit ---------- */
+  const handleEdit = async (id: string, data: ClientFormShape) => {
     setSaving(true);
     try {
       const res = await fetch(`/api/clients/${id}`, {
@@ -266,7 +412,7 @@ export default function ClientsPage() {
     }
   };
 
-  /* ---------- Delete (unchanged logic) ---------- */
+  /* ---------- Delete ---------- */
   const handleDelete = async () => {
     if (!deleteTarget) return;
     const id = deleteTarget._id;
@@ -311,7 +457,7 @@ export default function ClientsPage() {
             Clients
           </h1>
           <p className="mt-1 text-sm text-slate-500 md:text-base">
-            Manage preset client info to auto-fill invoices.
+            Manage preset client info, your company details, and bank info to auto-fill invoices.
           </p>
         </div>
         {isSuperAdmin && !showAdd && (
@@ -430,6 +576,13 @@ export default function ClientsPage() {
                         email: client.email,
                         phone: client.phone,
                         address: client.address,
+                        from: client.from ?? { name: "", email: "", phone: "", address: "" },
+                        accountName: client.accountName ?? "",
+                        accountNumber: client.accountNumber ?? "",
+                        bankName: client.bankName ?? "",
+                        branch: client.branch ?? "",
+                        swift: client.swift ?? "",
+                        routingNumber: client.routingNumber ?? "",
                       }}
                       onSave={(data) => handleEdit(client._id, data)}
                       onCancel={() => setEditingId(null)}
@@ -447,6 +600,12 @@ export default function ClientsPage() {
                           <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
                             <Building2 className="h-3 w-3" aria-hidden="true" />
                             {client.companyName}
+                          </span>
+                        )}
+                        {client.bankName && (
+                          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#EEEDFE] px-2 py-0.5 text-xs font-medium text-[#3C3489]">
+                            <Landmark className="h-3 w-3" aria-hidden="true" />
+                            {client.bankName}
                           </span>
                         )}
                       </div>
@@ -476,6 +635,15 @@ export default function ClientsPage() {
                           </span>
                         )}
                       </div>
+
+                      {/* From preview line — only when present */}
+                      {client.from?.name && (
+                        <p className="text-xs text-slate-400">
+                          <span className="font-medium text-slate-500">From:</span>{" "}
+                          {client.from.name}
+                          {client.from.email ? ` · ${client.from.email}` : ""}
+                        </p>
+                      )}
                     </div>
 
                     {isSuperAdmin && (

@@ -359,6 +359,9 @@ export default function CreateQuotationPage() {
     setFormData((prev) => ({
       ...prev,
       to: { name: client.name, email: client.email, phone: client.phone, address: client.address },
+      from: client.from
+        ? { ...prev.from, ...client.from }
+        : prev.from,
     }));
     toast.success(`Loaded "${client.name}"`);
   };
@@ -478,13 +481,21 @@ export default function CreateQuotationPage() {
 
   /* ---------- Save (unchanged) ---------- */
   const handleSave = async (status: "Paid" | "Unpaid" | "Hold") => {
+    const cleanedItems = (formData.items || []).filter(
+      (it) => (it.name || "").trim() !== "",
+    );
+    if (cleanedItems.length === 0) {
+      toast.error("Add at least one line item with a description.");
+      return;
+    }
+
     setLoading(true);
     setSavingAs(status);
     try {
       const res = await fetch("/api/invoices", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...formData, status }),
+        body: JSON.stringify({ ...formData, items: cleanedItems, status }),
       });
       if (res.ok) {
         toast.success("Quotation saved");

@@ -22,9 +22,9 @@ const serviceGroupSchema = new Schema({
 });
 
 const receiptLineItemSchema = new Schema({
-  invoiceNo:   { type: String, default: "" },
+  invoiceNo: { type: String, default: "" },
   description: { type: String, default: "" },
-  amount:      { type: Number, default: 0 },
+  amount: { type: Number, default: 0 },
 });
 
 const invoiceSchema = new Schema(
@@ -33,24 +33,26 @@ const invoiceSchema = new Schema(
     name: { type: String, required: true }, // E.g., "Web Dev Services"
     type: { type: String, enum: ["invoice", "serviceInvoice", "quotation", "receipt"], default: "invoice" },
     logoUrl: { type: String },
-    
+
+    description: { type: String, default: "" },
+
     from: {
       name: { type: String },
       email: { type: String },
       phone: { type: String },
       address: { type: String },
     },
-    
+
     to: {
       name: { type: String },
       email: { type: String },
       phone: { type: String },
       address: { type: String },
     },
-    
+
     date: { type: Date, required: true },
     dueDate: { type: Date, required: true },
-    
+
     paymentInfo: {
       accountName: { type: String },
       accountNumber: { type: String },
@@ -59,44 +61,46 @@ const invoiceSchema = new Schema(
       swift: { type: String },
       routingNumber: { type: String },
       currency: { type: String, default: "USD" },
+      note:           { type: String, default: "" },
     },
-    
+
     items: { type: [itemSchema], default: [] },
     services: { type: [serviceGroupSchema], default: [] },
-    
+
     vat: { type: Number, default: 0 },
     discount: { type: Number, default: 0 },
     advancePaid: { type: Number, default: 0 },
     total: { type: Number, required: true },
 
     notes: {
-      text:   { type: String, default: "" },
+      text: { type: String, default: "" },
       points: { type: [String], default: [] },
     },
 
     receiptInfo: {
-      currency:            { type: String, default: "BDT" },
-      showInvoiceNo:       { type: Boolean, default: true },
-      lineItems:           { type: [receiptLineItemSchema], default: [] },
-      paidAmount:          { type: Number, default: 0 },
-      receivedAmount:      { type: Number, default: 0 },
-      paymentMethod:       { type: String, default: "" },
+      currency: { type: String, default: "BDT" },
+      showInvoiceNo: { type: Boolean, default: true },
+      lineItems: { type: [receiptLineItemSchema], default: [] },
+      paidAmount: { type: Number, default: 0 },
+      receivedAmount: { type: Number, default: 0 },
+      paymentMethod: { type: String, default: "" },
       accountTransferName: { type: String, default: "" },
+      note: { type: String, default: "" },
       receivedBy: {
-        name:        { type: String, default: "" },
+        name: { type: String, default: "" },
         designation: { type: String, default: "" },
         companyName: { type: String, default: "" },
-        address:     { type: String, default: "" },
-        mobile:      { type: String, default: "" },
+        address: { type: String, default: "" },
+        mobile: { type: String, default: "" },
       },
     },
-    
+
     status: { type: String, enum: ["Paid", "Unpaid", "Hold", "Cancelled"], default: "Unpaid" },
 
     creatorId: { type: Schema.Types.ObjectId, ref: "User", required: true },
 
-    isDeleted:  { type: Boolean, default: false },
-    deletedAt:  { type: Date },
+    isDeleted: { type: Boolean, default: false },
+    deletedAt: { type: Date },
   },
   { timestamps: true }
 );

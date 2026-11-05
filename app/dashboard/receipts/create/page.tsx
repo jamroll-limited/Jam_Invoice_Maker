@@ -290,6 +290,7 @@ const defaultReceiptInfo = (): ReceiptInfo => ({
   receivedAmount: 0,
   paymentMethod: "",
   accountTransferName: "",
+  note: "",
   receivedBy: { name: "", designation: "", companyName: "", address: "", mobile: "" },
 });
 
@@ -336,6 +337,18 @@ export default function CreateReceiptPage() {
     setFormData((p) => ({
       ...p,
       to: { name: client.name, email: client.email, phone: client.phone, address: client.address },
+      from: client.from
+        ? { ...p.from, ...client.from }
+        : p.from,
+      paymentInfo: {
+        ...p.paymentInfo!,
+        accountName: client.accountName ?? p.paymentInfo?.accountName ?? "",
+        accountNumber: client.accountNumber ?? p.paymentInfo?.accountNumber ?? "",
+        bankName: client.bankName ?? p.paymentInfo?.bankName ?? "",
+        branch: client.branch ?? p.paymentInfo?.branch ?? "",
+        swift: client.swift ?? p.paymentInfo?.swift ?? "",
+        routingNumber: client.routingNumber ?? p.paymentInfo?.routingNumber ?? "",
+      },
     }));
     toast.success(`Loaded "${client.name}"`);
   };
@@ -617,6 +630,19 @@ export default function CreateReceiptPage() {
                 </div>
               </div>
 
+              {/* Description */}
+              <div className="mt-4">
+                <Field label="Description" hint="Shown on the receipt below the title">
+                  <Textarea
+                    value={formData.description || ""}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="e.g. Payment for web development services"
+                    rows={2}
+                    className={cn(inputClass, "resize-none")}
+                  />
+                </Field>
+              </div>
+
               {/* Logo */}
               <div className="border-t border-slate-100 pt-4">
                 <Field label="Logo" hint="PNG, JPG, or SVG up to ~2MB">
@@ -896,6 +922,19 @@ export default function CreateReceiptPage() {
 
             {/* PAYMENT TAB */}
             <TabsContent value="payment" className="space-y-4 pt-4">
+              {/* Note */}
+              <div className="mb-2">
+                <Field label="Note" hint="Shown on the receipt at the bottom">
+                  <Textarea
+                    value={ri.note || ""}
+                    onChange={(e) => updateRI({ note: e.target.value })}
+                    placeholder="e.g. This receipt is non-refundable."
+                    rows={2}
+                    className={cn(inputClass, "resize-none")}
+                  />
+                </Field>
+              </div>
+
               <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em] text-slate-400">
                 <CreditCard className="h-3.5 w-3.5" />
                 Payment Received In

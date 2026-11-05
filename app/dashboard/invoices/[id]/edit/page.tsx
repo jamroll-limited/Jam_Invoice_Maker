@@ -186,12 +186,20 @@ export default function EditInvoicePage() {
 
   /* ---------- Save (unchanged logic) ---------- */
   const handleSave = async () => {
+    const cleanedItems = (formData.items || []).filter(
+      (it) => (it.name || "").trim() !== "",
+    );
+    if (cleanedItems.length === 0) {
+      toast.error("Add at least one line item with a description.");
+      return;
+    }
+
     setSaving(true);
     try {
       const res = await fetch(`/api/invoices/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...formData, total: liveTotal }),
+        body: JSON.stringify({ ...formData, items: cleanedItems, total: liveTotal }),
       });
       if (res.ok) {
         toast.success("Invoice saved");

@@ -352,6 +352,7 @@ export default function EditReceiptPage() {
             receivedAmount: ri.receivedAmount || 0,
             paymentMethod: ri.paymentMethod || "",
             accountTransferName: ri.accountTransferName || "",
+            note: ri.note || "",
             receivedBy: {
               name: ri.receivedBy?.name || "",
               designation: ri.receivedBy?.designation || "",
@@ -374,6 +375,18 @@ export default function EditReceiptPage() {
     setFormData((p) => ({
       ...p,
       to: { name: client.name, email: client.email, phone: client.phone, address: client.address },
+      from: client.from
+        ? { ...p.from, ...client.from }
+        : p.from,
+      paymentInfo: {
+        ...p.paymentInfo!,
+        accountName: client.accountName ?? p.paymentInfo?.accountName ?? "",
+        accountNumber: client.accountNumber ?? p.paymentInfo?.accountNumber ?? "",
+        bankName: client.bankName ?? p.paymentInfo?.bankName ?? "",
+        branch: client.branch ?? p.paymentInfo?.branch ?? "",
+        swift: client.swift ?? p.paymentInfo?.swift ?? "",
+        routingNumber: client.routingNumber ?? p.paymentInfo?.routingNumber ?? "",
+      },
     }));
     toast.success(`Loaded "${client.name}"`);
   };

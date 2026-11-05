@@ -19,6 +19,8 @@ import {
   Search,
   X,
   ChevronsUpDown,
+  Building2,
+  Landmark,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -60,6 +62,8 @@ const navSections: NavSection[] = [
     label: "Manage",
     items: [
       { name: "Clients", href: "/dashboard/clients", icon: ContactRound },
+      { name: "Companies", href: "/dashboard/companies", icon: Building2 },
+      { name: "Bank Accounts", href: "/dashboard/bank-accounts", icon: Landmark },
       { name: "Users", href: "/dashboard/users", icon: Users },
       { name: "Feedback", href: "/dashboard/feedback", icon: MessageSquare },
       { name: "Trash", href: "/dashboard/trash", icon: Trash2 },

@@ -571,9 +571,24 @@ export default function CreateServiceInvoicePage() {
     setFormData((p) => ({
       ...p,
       to: { name: client.name, email: client.email, phone: client.phone, address: client.address },
+      // auto-fill "Your Company (From)" — only overrides when the client has data
+      from: client.from
+        ? { ...p.from, ...client.from }
+        : p.from,
+      // auto-fill bank details — each field only overrides when the client has data
+      paymentInfo: {
+        ...p.paymentInfo!,
+        accountName: client.accountName ?? p.paymentInfo?.accountName ?? "",
+        accountNumber: client.accountNumber ?? p.paymentInfo?.accountNumber ?? "",
+        bankName: client.bankName ?? p.paymentInfo?.bankName ?? "",
+        branch: client.branch ?? p.paymentInfo?.branch ?? "",
+        swift: client.swift ?? p.paymentInfo?.swift ?? "",
+        routingNumber: client.routingNumber ?? p.paymentInfo?.routingNumber ?? "",
+      },
     }));
     toast.success(`Loaded "${client.name}"`);
   };
+
   const handleNewClientSaved = (client: any) => {
     setPresetClients((p) => [...p, client].sort((a, b) => a.name.localeCompare(b.name)));
     applyPresetClient(client);
@@ -674,13 +689,37 @@ export default function CreateServiceInvoicePage() {
 
   /* ---------- Save (unchanged) ---------- */
   const handleSave = async (status: "Paid" | "Unpaid" | "Hold") => {
+    // Drop empty services and empty items so Mongoose `required: true`
+    // on `serviceName` and `name` doesn't fail.
+    // A service group is kept only if it has at least one named item.
+    // If the group has named items but no serviceName, give it a fallback name.
+    const cleanedServices = (formData.services || [])
+      .map((svc, svcIdx) => {
+        const namedItems = (svc.items || []).filter(
+          (it) => (it.name || "").trim() !== "",
+        );
+        const serviceName = (svc.serviceName || "").trim();
+        return {
+          ...svc,
+          serviceName:
+            serviceName !== "" ? serviceName : `Service ${svcIdx + 1}`,
+          items: namedItems,
+        };
+      })
+      .filter((svc) => svc.items.length > 0);
+
+    if (cleanedServices.length === 0) {
+      toast.error("Add at least one service with an item description.");
+      return;
+    }
+
     setLoading(true);
     setSavingAs(status);
     try {
       const res = await fetch("/api/invoices", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...formData, status }),
+        body: JSON.stringify({ ...formData, services: cleanedServices, status }),
       });
       if (res.ok) {
         toast.success(`Invoice saved as ${status}`);

@@ -13,6 +13,7 @@ import {
   Trash2, Plus, Search, X, UserPlus, Building2, Mail, Phone, MapPin,
   FileText, User, CreditCard, Package, Upload, Eye, Download, Pause,
   CheckCircle2, Clock,
+  Landmark,
 } from "lucide-react";
 import { InvoicePreview, PAGE_WIDTH, PAGE_HEIGHT } from "@/components/InvoicePreview";
 import { InvoiceFormData } from "@/types/invoice";
@@ -21,6 +22,11 @@ import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
+import { CompanyData } from "@/types/company";
+import { BankAccountData } from "@/types/bankAccount";
+import { CompanySearch } from "@/components/CompanySearch";
+import Link from "next/link";
+import { BankAccountSearch } from "@/components/BankAccountSearch";
 
 /* ------------------------------------------------------------------ */
 /*  Field wrapper — consistent label + input spacing                   */
@@ -329,6 +335,8 @@ export default function CreateInvoicePage() {
   const [downloading, setDownloading] = useState(false);
   const [savingAs, setSavingAs] = useState<string | null>(null);
   const [presetClients, setPresetClients] = useState<ClientData[]>([]);
+  const [presetCompanies, setPresetCompanies] = useState<CompanyData[]>([]);
+  const [presetBankAccounts, setPresetBankAccounts] = useState<BankAccountData[]>([]);
   const [showAddClient, setShowAddClient] = useState(false);
 
   const [formData, setFormData] = useState<Partial<InvoiceFormData>>({
@@ -355,10 +363,16 @@ export default function CreateInvoicePage() {
       invoiceNumber: "INV-" + Math.floor(Math.random() * 10000).toString().padStart(4, "0"),
       dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
     }));
-    fetch("/api/clients")
-      .then((r) => r.json())
-      .then((data) => {
-        if (Array.isArray(data)) setPresetClients(data);
+
+    Promise.all([
+      fetch("/api/clients").then((r) => r.json()),
+      fetch("/api/companies").then((r) => r.json()),        // ← NEW
+      fetch("/api/bank-accounts").then((r) => r.json()),    // ← NEW
+    ])
+      .then(([clients, companies, bankAccounts]) => {
+        if (Array.isArray(clients)) setPresetClients(clients);
+        if (Array.isArray(companies)) setPresetCompanies(companies);
+        if (Array.isArray(bankAccounts)) setPresetBankAccounts(bankAccounts);
       })
       .catch(() => { });
   }, []);
@@ -373,8 +387,55 @@ export default function CreateInvoicePage() {
         phone: client.phone,
         address: client.address,
       },
+      // auto-fill "Your Company (From)"
+      from: client.from
+        ? { ...prev.from, ...client.from }
+        : prev.from,
+      // auto-fill bank details
+      paymentInfo: {
+        ...prev.paymentInfo!,
+        accountName: client.accountName ?? prev.paymentInfo?.accountName ?? "",
+        accountNumber: client.accountNumber ?? prev.paymentInfo?.accountNumber ?? "",
+        bankName: client.bankName ?? prev.paymentInfo?.bankName ?? "",
+        branch: client.branch ?? prev.paymentInfo?.branch ?? "",
+        swift: client.swift ?? prev.paymentInfo?.swift ?? "",
+        routingNumber: client.routingNumber ?? prev.paymentInfo?.routingNumber ?? "",
+      },
     }));
     toast.success(`Loaded "${client.name}"`);
+  };
+
+  // fills `from`
+  const applyPresetCompany = (company: CompanyData) => {
+    setFormData((prev) => ({
+      ...prev,
+      from: {
+        name: company.name || prev.from?.name || "",
+        email: company.email || prev.from?.email || "",
+        phone: company.phone || prev.from?.phone || "",
+        address: company.address || prev.from?.address || "",
+      },
+    }));
+    toast.success(`Loaded company "${company.name}"`);
+  };
+
+  // fills `paymentInfo`
+  const applyPresetBankAccount = (b: BankAccountData) => {
+    setFormData((prev) => ({
+      ...prev,
+      paymentInfo: {
+        ...prev.paymentInfo!,
+        accountName: b.accountName || prev.paymentInfo?.accountName || "",
+        accountNumber: b.accountNumber || prev.paymentInfo?.accountNumber || "",
+        bankName: b.bankName || prev.paymentInfo?.bankName || "",
+        branch: b.branch || prev.paymentInfo?.branch || "",
+        swift: b.swift || prev.paymentInfo?.swift || "",
+        routingNumber: b.routingNumber || prev.paymentInfo?.routingNumber || "",
+        currency: b.currency || prev.paymentInfo?.currency || "BDT",
+        note: b.note ?? prev.paymentInfo?.note ?? "",
+      },
+    }));
+    toast.success(`Loaded bank account "${b.label}"`);
   };
 
   const handleNewClientSaved = (client: ClientData) => {
@@ -483,13 +544,22 @@ export default function CreateInvoicePage() {
 
   /* ---------- Save (unchanged logic) ---------- */
   const handleSave = async (status: "Paid" | "Unpaid" | "Hold") => {
+    // Drop empty line items so Mongoose `required: true` on `name` doesn't fail
+    const cleanedItems = (formData.items || []).filter(
+      (it) => (it.name || "").trim() !== "",
+    );
+    if (cleanedItems.length === 0) {
+      toast.error("Add at least one line item with a description.");
+      return;
+    }
+
     setLoading(true);
     setSavingAs(status);
     try {
       const res = await fetch("/api/invoices", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...formData, status }),
+        body: JSON.stringify({ ...formData, items: cleanedItems, status }),
       });
       if (res.ok) {
         toast.success(`Invoice saved as ${status}`);
@@ -757,6 +827,25 @@ export default function CreateInvoicePage() {
                     <Building2 className="h-3.5 w-3.5" />
                     Your Company (From)
                   </h3>
+                  {/* Preset company search */}
+                  <div className="mb-4">
+                    <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em] text-slate-400">
+                      <Building2 className="h-3.5 w-3.5" />
+                      Load from Preset Company
+                    </h3>
+                    <CompanySearch
+                      companies={presetCompanies}
+                      onSelect={applyPresetCompany}
+                    />
+                    {presetCompanies.length === 0 && (
+                      <p className="mt-2 text-xs text-slate-400">
+                        No preset companies yet.{" "}
+                        <Link href="/dashboard/companies" className="font-medium text-[#5A378F] hover:underline">
+                          Add one now
+                        </Link>
+                      </p>
+                    )}
+                  </div>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <Field label="Company Name">
                       <Input value={formData.from?.name} onChange={(e) => updateFrom("name", e.target.value)} className={inputClass} />
@@ -776,6 +865,8 @@ export default function CreateInvoicePage() {
                       />
                     </Field>
                   </div>
+
+
                 </div>
               </TabsContent>
 
@@ -1033,6 +1124,26 @@ export default function CreateInvoicePage() {
                   <CreditCard className="h-3.5 w-3.5" />
                   Payment Information
                 </h3>
+
+                {/* Preset bank account search */}
+                <div className="mb-4">
+                  <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em] text-slate-400">
+                    <Landmark className="h-3.5 w-3.5" />
+                    Load from Preset Bank Account
+                  </h3>
+                  <BankAccountSearch
+                    accounts={presetBankAccounts}
+                    onSelect={applyPresetBankAccount}
+                  />
+                  {presetBankAccounts.length === 0 && (
+                    <p className="mt-2 text-xs text-slate-400">
+                      No preset bank accounts yet.{" "}
+                      <Link href="/dashboard/bank-accounts" className="font-medium text-[#5A378F] hover:underline">
+                        Add one now
+                      </Link>
+                    </p>
+                  )}
+                </div>
 
                 {/* Note (full width, top) */}
                 <div className="mb-2">

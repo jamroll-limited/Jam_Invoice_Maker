@@ -20,6 +20,7 @@ export type ReceiptInfo = {
   receivedAmount: number;
   paymentMethod: "cash" | "cheque" | "accountTransfer" | "";
   accountTransferName: string;
+  note?: string;
   receivedBy: {
     name: string;
     designation: string;

@@ -419,12 +419,32 @@ export default function EditServiceInvoicePage() {
 
   /* ---------- Save (unchanged logic) ---------- */
   const handleSave = async () => {
+    const cleanedServices = (formData.services || [])
+      .map((svc, svcIdx) => {
+        const namedItems = (svc.items || []).filter(
+          (it) => (it.name || "").trim() !== "",
+        );
+        const serviceName = (svc.serviceName || "").trim();
+        return {
+          ...svc,
+          serviceName:
+            serviceName !== "" ? serviceName : `Service ${svcIdx + 1}`,
+          items: namedItems,
+        };
+      })
+      .filter((svc) => svc.items.length > 0);
+
+    if (cleanedServices.length === 0) {
+      toast.error("Add at least one service with an item description.");
+      return;
+    }
+
     setSaving(true);
     try {
       const res = await fetch(`/api/invoices/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...formData, total: liveTotal }),
+        body: JSON.stringify({ ...formData, services: cleanedServices, total: liveTotal }),
       });
       if (res.ok) {
         toast.success("Invoice saved");
