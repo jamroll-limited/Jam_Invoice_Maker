@@ -143,7 +143,7 @@ function HeaderSection({ logoUrl, from, to }: {
 }) {
   return (
     <header style={{ display: "flex", justifyContent: "space-between", marginBottom: "14px" }}>
-      {/* From */}
+      {/* Left: Logo only */}
       <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
         {logoUrl ? (
           <img
@@ -168,8 +168,13 @@ function HeaderSection({ logoUrl, from, to }: {
             Logo
           </div>
         )}
+      </div>
+
+      {/* Right: From (top) + To (bottom), stacked vertically */}
+      <div style={{ textAlign: "left", fontSize: FONT_SIZES.md, maxWidth: "260px" }}>
+        {/* From on top */}
         {from.name && (
-          <div style={{ fontSize: FONT_SIZES.base }}>
+          <div style={{ fontSize: FONT_SIZES.base, marginBottom: "12px" }}>
             <h4 style={{ color: COLORS.brand, fontWeight: "bold", margin: 0 }}>From:</h4>
             <p style={{ fontWeight: 700, margin: 0 }}>{from.name}</p>
             {from.address && <p style={{ color: COLORS.textSecondary, margin: 0 }}>{from.address}</p>}
@@ -177,15 +182,15 @@ function HeaderSection({ logoUrl, from, to }: {
             {from.email && <p style={{ color: COLORS.textSecondary, margin: 0 }}>{from.email}</p>}
           </div>
         )}
-      </div>
 
-      {/* To */}
-      <div style={{ textAlign: "left", fontSize: FONT_SIZES.md }}>
-        <h4 style={{ color: COLORS.brand, fontWeight: "bold", margin: 0 }}>To:</h4>
-        <p style={{ fontWeight: "bold", margin: 0 }}>{to.name}</p>
-        <p style={{ color: COLORS.textSecondary, whiteSpace: "pre-line", margin: 0 }}>{to.address}</p>
-        <p style={{ color: COLORS.textSecondary, margin: 0 }}>{to.email}</p>
-        <p style={{ color: COLORS.textSecondary, margin: 0 }}>{to.phone}</p>
+        {/* To on bottom */}
+        <div>
+          <h4 style={{ color: COLORS.brand, fontWeight: "bold", margin: 0 }}>To:</h4>
+          <p style={{ fontWeight: "bold", margin: 0 }}>{to.name}</p>
+          <p style={{ color: COLORS.textSecondary, whiteSpace: "pre-line", margin: 0 }}>{to.address}</p>
+          <p style={{ color: COLORS.textSecondary, margin: 0 }}>{to.email}</p>
+          <p style={{ color: COLORS.textSecondary, margin: 0 }}>{to.phone}</p>
+        </div>
       </div>
     </header>
   );
@@ -208,6 +213,36 @@ function TitleSection({ name, invoiceNumber }: { name: string; invoiceNumber: st
     >
       <h1 style={{ margin: 0, fontSize: FONT_SIZES.title, fontWeight: "bold" }}>{name}</h1>
       <h1 style={{ margin: 0, fontSize: FONT_SIZES.title, fontWeight: "bold" }}>#{invoiceNumber}</h1>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Description section (between title and dates)                      */
+/* ------------------------------------------------------------------ */
+function DescriptionSection({ description }: { description?: string }) {
+  if (!description?.trim()) return null;
+
+  return (
+    <div
+      style={{
+        marginBottom: "14px",
+        padding: "8px 12px",
+        background: COLORS.logoBg,
+        borderRadius: "2px",
+      }}
+    >
+      <p
+        style={{
+          margin: 0,
+          fontSize: FONT_SIZES.md,
+          color: COLORS.textPrimary,
+          whiteSpace: "pre-line",
+          lineHeight: 1.4,
+        }}
+      >
+        {description}
+      </p>
     </div>
   );
 }
@@ -602,6 +637,7 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
     const {
       invoiceNumber = "INV-001",
       name = "Invoice",
+      description,
       logoUrl,
       type,
       from = { name: "", email: "", phone: "", address: "" },
@@ -669,6 +705,7 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
               <div style={{ flex: 1, overflow: "hidden" }}>
                 {page.isFirst && <HeaderSection logoUrl={logoUrl} from={from} to={to} />}
                 {page.isFirst && <TitleSection name={name} invoiceNumber={invoiceNumber} />}
+                {page.isFirst && <DescriptionSection description={description} />}
                 {page.isFirst && <DatesSection date={date} dueDate={dueDate} />}
 
                 <ItemsTable

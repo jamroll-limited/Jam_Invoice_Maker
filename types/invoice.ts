@@ -16,8 +16,8 @@ export type ReceiptInfo = {
   currency: string;
   showInvoiceNo: boolean;
   lineItems: ReceiptLineItem[];
-  paidAmount: number;       // Advance Amount
-  receivedAmount: number;   // Paid Amount
+  paidAmount: number;
+  receivedAmount: number;
   paymentMethod: "cash" | "cheque" | "accountTransfer" | "";
   accountTransferName: string;
   receivedBy: {
@@ -45,26 +45,27 @@ export type ServiceGroup = {
 export type InvoiceFormData = {
   invoiceNumber: string;
   name: string;
+  description?: string;
   type: "invoice" | "serviceInvoice" | "quotation" | "receipt";
   logoUrl?: string;
-  
+
   from: {
     name: string;
     email: string;
     phone: string;
     address: string;
   };
-  
+
   to: {
     name: string;
     email: string;
     phone: string;
     address: string;
   };
-  
+
   date: Date;
   dueDate: Date;
-  
+
   paymentInfo: {
     accountName: string;
     accountNumber: string;
@@ -74,7 +75,7 @@ export type InvoiceFormData = {
     routingNumber?: string;
     currency: string;
   };
-  
+
   items: InvoiceItem[];
 
   vat: number;
@@ -92,9 +93,10 @@ export type InvoiceFormData = {
   status: "Paid" | "Unpaid" | "Hold" | "Cancelled";
 };
 
-export type ServiceInvoiceFormData  = {
+export type ServiceInvoiceFormData = {
   invoiceNumber: string;
   name: string;
+  description?: string;
   type: "serviceInvoice";
   logoUrl?: string;
 

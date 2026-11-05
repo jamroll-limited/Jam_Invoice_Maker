@@ -649,6 +649,8 @@ export default function CreateInvoicePage() {
                     <FileText className="h-3.5 w-3.5" />
                     Invoice Details
                   </h3>
+
+                  {/* Row 1: Invoice Number + Document Name */}
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <Field label="Invoice Number">
                       <Input
@@ -664,6 +666,23 @@ export default function CreateInvoicePage() {
                         className={inputClass}
                       />
                     </Field>
+                  </div>
+
+                  {/* Row 2: Description (full width) */}
+                  <div className="mt-4">
+                    <Field label="Description" hint="Shown on the invoice below the title">
+                      <Textarea
+                        value={formData.description || ""}
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                        placeholder="e.g. Web development services for Q4 2024"
+                        rows={2}
+                        className={cn(inputClass, "resize-none")}
+                      />
+                    </Field>
+                  </div>
+
+                  {/* Row 3: Date + Due Date */}
+                  <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <Field label="Date">
                       <Input
                         type="date"

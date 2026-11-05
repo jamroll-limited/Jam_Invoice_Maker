@@ -365,11 +365,53 @@ export default function EditInvoicePage() {
                   <FileText className="h-3.5 w-3.5" />
                   Invoice Details
                 </h3>
+
+                {/* Row 1: Invoice Number + Document Name */}
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Field label="Invoice Number">
                     <Input
                       value={formData.invoiceNumber}
                       onChange={(e) => setFormData({ ...formData, invoiceNumber: e.target.value })}
+                      className={inputClass}
+                    />
+                  </Field>
+                  <Field label="Document Name">
+                    <Input
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      className={inputClass}
+                    />
+                  </Field>
+                </div>
+
+                {/* Row 2: Description (full width) */}
+                <div className="mt-4">
+                  <Field label="Description" hint="Shown on the invoice below the title">
+                    <Textarea
+                      value={formData.description || ""}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      placeholder="e.g. Web development services for Q4 2024"
+                      rows={2}
+                      className={cn(inputClass, "resize-none")}
+                    />
+                  </Field>
+                </div>
+
+                {/* Row 3: Date + Due Date + Status */}
+                <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <Field label="Date">
+                    <Input
+                      type="date"
+                      value={formData.date ? new Date(formData.date).toISOString().split("T")[0] : ""}
+                      onChange={(e) => setFormData({ ...formData, date: new Date(e.target.value) })}
+                      className={inputClass}
+                    />
+                  </Field>
+                  <Field label="Due Date">
+                    <Input
+                      type="date"
+                      value={formData.dueDate ? new Date(formData.dueDate).toISOString().split("T")[0] : ""}
+                      onChange={(e) => setFormData({ ...formData, dueDate: new Date(e.target.value) })}
                       className={inputClass}
                     />
                   </Field>
@@ -388,31 +430,6 @@ export default function EditInvoicePage() {
                       <option value="Cancelled">Cancel</option>
                     </select>
                   </Field>
-                  <Field label="Document Name">
-                    <Input
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className={inputClass}
-                    />
-                  </Field>
-                  <Field label="Date">
-                    <Input
-                      type="date"
-                      value={formData.date ? new Date(formData.date).toISOString().split("T")[0] : ""}
-                      onChange={(e) => setFormData({ ...formData, date: new Date(e.target.value) })}
-                      className={inputClass}
-                    />
-                  </Field>
-                  <div className="sm:col-span-2">
-                    <Field label="Due Date">
-                      <Input
-                        type="date"
-                        value={formData.dueDate ? new Date(formData.dueDate).toISOString().split("T")[0] : ""}
-                        onChange={(e) => setFormData({ ...formData, dueDate: new Date(e.target.value) })}
-                        className={inputClass}
-                      />
-                    </Field>
-                  </div>
                 </div>
               </div>
 
