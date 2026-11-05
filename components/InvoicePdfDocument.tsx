@@ -96,7 +96,10 @@ const styles = StyleSheet.create({
   page: {
     width: 612,
     padding: 30,
-    paddingBottom: 80,
+    // Footer sits at bottom: 30 and is ~60pt tall (top ≈ 90pt from the
+    // page edge). Reserve extra room so content always stops with a clear
+    // gap above the footer and breaks onto the next page instead.
+    paddingBottom: 150,
     backgroundColor: "#ffffff",
     color: "#000000",
     fontFamily: "HelveticaNowDisplay",
@@ -483,33 +486,48 @@ function ServiceTable({ services }: { services: ServiceGroup[] }) {
         pdfElement(
           View,
           { key: `${service.serviceName}-${serviceIndex}` },
-          pdfElement(
-            Text,
-            { style: styles.serviceHeader },
-            `${serviceIndex + 1}. ${service.serviceName || `Service ${serviceIndex + 1}`}`,
-          ),
-          service.items.map((item, itemIndex) =>
-            pdfElement(ItemRow, {
-              key: `${item.name}-${itemIndex}`,
-              item,
-              indexLabel: `${itemIndex + 1}.`,
-              indented: true,
-            }),
-          ),
-          pdfElement(
-            View,
-            { style: styles.serviceSubtotalRow },
-            pdfElement(Text, { style: styles.serviceSubtotalLabel }, "Service Subtotal:"),
-            pdfElement(
-              Text,
-              { style: styles.serviceSubtotalValue },
-              formatMoney(sumItems(service.items)),
-            ),
-          ),
+          ...serviceRowGroups(service, serviceIndex),
         ),
       )
       : pdfElement(Text, { style: styles.emptyText }, "No services added"),
   );
+}
+
+/**
+ * Splits a service into unbreakable groups so page breaks only happen
+ * between items: the heading always stays with the first item, and the
+ * subtotal always stays with the last item (never orphaned or split).
+ */
+function serviceRowGroups(service: ServiceGroup, serviceIndex: number) {
+  const header = pdfElement(
+    Text,
+    { key: "header", style: styles.serviceHeader },
+    `${serviceIndex + 1}. ${service.serviceName || `Service ${serviceIndex + 1}`}`,
+  );
+  const subtotal = pdfElement(
+    View,
+    { key: "subtotal", style: styles.serviceSubtotalRow },
+    pdfElement(Text, { style: styles.serviceSubtotalLabel }, "Service Subtotal:"),
+    pdfElement(Text, { style: styles.serviceSubtotalValue }, formatMoney(sumItems(service.items))),
+  );
+  const rows = service.items.map((item, itemIndex) =>
+    pdfElement(ItemRow, {
+      key: `${item.name}-${itemIndex}`,
+      item,
+      indexLabel: `${itemIndex + 1}.`,
+      indented: true,
+    }),
+  );
+
+  if (rows.length <= 1) {
+    return [pdfElement(View, { key: "all", wrap: false }, header, ...rows, subtotal)];
+  }
+
+  return [
+    pdfElement(View, { key: "first", wrap: false }, header, rows[0]),
+    ...rows.slice(1, -1),
+    pdfElement(View, { key: "last", wrap: false }, rows[rows.length - 1], subtotal),
+  ];
 }
 
 function ItemRow({
@@ -552,32 +570,55 @@ function TotalsBlock({
 }) {
   const hasNotes = isQuotation && (notes?.text || (notes?.points && notes.points.length > 0));
 
+  const totalRows = rows.map((row) =>
+    pdfElement(
+      View,
+      { key: row.label, style: styles.totalRow },
+      pdfElement(Text, { style: styles.totalLabel }, row.label),
+      pdfElement(Text, { style: styles.totalValue }, row.value),
+    ),
+  );
+
+  // Invoices: totals + payment box form ONE unbreakable block. If it doesn't
+  // fit in the space left on the page, the whole block moves to the next page
+  // instead of splitting (e.g. Sub-Total on one page, Grand Total on the next).
+  if (!isQuotation) {
+    return pdfElement(
+      View,
+      { style: styles.totals, wrap: false },
+      ...totalRows,
+      pdfElement(PaymentInfoBox, { paymentInfo }),
+    );
+  }
+
+  const notesBox = hasNotes
+    ? pdfElement(
+      View,
+      { style: styles.paymentBox },
+      pdfElement(Text, { style: [styles.paymentTitle, { marginBottom: 6 }] }, "Notes:"),
+      notes?.text
+        ? pdfElement(Text, { style: { fontSize: 10, color: "white", marginBottom: notes?.points?.length ? 6 : 0 } }, notes.text)
+        : null,
+      ...(notes?.points ?? []).map((pt, i) =>
+        pdfElement(Text, { key: String(i), style: { fontSize: 10, color: "white", marginBottom: 2 } }, `• ${pt}`),
+      ),
+    )
+    : null;
+
+  // Quotation notes can be long. Keep short notes together with the totals;
+  // let very long notes flow onto the next page so nothing gets clipped.
+  const notesLength = (notes?.text?.length ?? 0) + (notes?.points ?? []).join(" ").length;
+  const notesAreShort = (notes?.points?.length ?? 0) <= 10 && notesLength <= 900;
+
+  if (!notesBox || notesAreShort) {
+    return pdfElement(View, { style: styles.totals, wrap: false }, ...totalRows, notesBox);
+  }
+
   return pdfElement(
     View,
     { style: styles.totals },
-    rows.map((row) =>
-      pdfElement(
-        View,
-        { key: row.label, style: styles.totalRow },
-        pdfElement(Text, { style: styles.totalLabel }, row.label),
-        pdfElement(Text, { style: styles.totalValue }, row.value),
-      ),
-    ),
-    isQuotation
-      ? hasNotes
-        ? pdfElement(
-          View,
-          { style: styles.paymentBox },
-          pdfElement(Text, { style: [styles.paymentTitle, { marginBottom: 6 }] }, "Notes:"),
-          notes?.text
-            ? pdfElement(Text, { style: { fontSize: 10, color: "white", marginBottom: notes?.points?.length ? 6 : 0 } }, notes.text)
-            : null,
-          ...(notes?.points ?? []).map((pt, i) =>
-            pdfElement(Text, { key: String(i), style: { fontSize: 10, color: "white", marginBottom: 2 } }, `• ${pt}`),
-          ),
-        )
-        : null
-      : pdfElement(PaymentInfoBox, { paymentInfo }),
+    pdfElement(View, { wrap: false }, ...totalRows),
+    notesBox,
   );
 }
 
