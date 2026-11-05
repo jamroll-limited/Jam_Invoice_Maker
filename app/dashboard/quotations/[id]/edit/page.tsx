@@ -639,11 +639,52 @@ export default function EditQuotationPage() {
                     <FileCheck className="h-3.5 w-3.5" />
                     Quotation Details
                   </h3>
+                  {/* Row 1: Quotation Number + Document Name */}
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <Field label="Quotation Number">
                       <Input
                         value={formData.invoiceNumber}
                         onChange={(e) => setFormData({ ...formData, invoiceNumber: e.target.value })}
+                        className={inputClass}
+                      />
+                    </Field>
+                    <Field label="Document Name">
+                      <Input
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        className={inputClass}
+                      />
+                    </Field>
+                  </div>
+
+                  {/* Row 2: Description (full width) */}
+                  <div className="mt-4">
+                    <Field label="Description" hint="Shown on the quotation below the title">
+                      <Textarea
+                        value={formData.description || ""}
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                        placeholder="e.g. Quotation for web development services for Q4 2024"
+                        rows={2}
+                        className={cn(inputClass, "resize-none")}
+                      />
+                    </Field>
+                  </div>
+
+                  {/* Row 3: Date + Valid Until + Status */}
+                  <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    <Field label="Date">
+                      <Input
+                        type="date"
+                        value={formData.date ? new Date(formData.date).toISOString().split("T")[0] : ""}
+                        onChange={(e) => setFormData({ ...formData, date: new Date(e.target.value) })}
+                        className={inputClass}
+                      />
+                    </Field>
+                    <Field label="Valid Until">
+                      <Input
+                        type="date"
+                        value={formData.dueDate ? new Date(formData.dueDate).toISOString().split("T")[0] : ""}
+                        onChange={(e) => setFormData({ ...formData, dueDate: new Date(e.target.value) })}
                         className={inputClass}
                       />
                     </Field>
@@ -662,31 +703,6 @@ export default function EditQuotationPage() {
                         <option value="Cancelled">Cancelled</option>
                       </select>
                     </Field>
-                    <Field label="Document Name">
-                      <Input
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        className={inputClass}
-                      />
-                    </Field>
-                    <Field label="Date">
-                      <Input
-                        type="date"
-                        value={formData.date ? new Date(formData.date).toISOString().split("T")[0] : ""}
-                        onChange={(e) => setFormData({ ...formData, date: new Date(e.target.value) })}
-                        className={inputClass}
-                      />
-                    </Field>
-                    <div className="sm:col-span-2">
-                      <Field label="Valid Until">
-                        <Input
-                          type="date"
-                          value={formData.dueDate ? new Date(formData.dueDate).toISOString().split("T")[0] : ""}
-                          onChange={(e) => setFormData({ ...formData, dueDate: new Date(e.target.value) })}
-                          className={inputClass}
-                        />
-                      </Field>
-                    </div>
                   </div>
                 </div>
 

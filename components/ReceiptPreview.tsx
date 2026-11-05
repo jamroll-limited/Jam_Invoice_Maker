@@ -35,6 +35,7 @@ export const ReceiptPreview = forwardRef<HTMLDivElement, Props>(
   ({ data }, ref) => {
     const {
       invoiceNumber = "",
+      description,
       logoUrl,
       from = { name: "", email: "", phone: "", address: "" },
       to = { name: "", email: "", phone: "", address: "" },
