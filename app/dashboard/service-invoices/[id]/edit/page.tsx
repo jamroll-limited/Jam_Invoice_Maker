@@ -17,7 +17,7 @@ import {
   Building2,
   Landmark,
 } from "lucide-react";
-import { ServiceInvoicePreview } from "@/components/ServiceInvoicePreview";
+import { PAGE_HEIGHT_2, PAGE_WIDTH_2, ServiceInvoicePreview } from "@/components/ServiceInvoicePreview";
 import { ServiceInvoiceFormData, ServiceGroup, ServiceItem } from "@/types/invoice";
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
@@ -450,6 +450,7 @@ export default function EditServiceInvoicePage() {
   const { id } = useParams();
   const router = useRouter();
   const printRef = useRef<HTMLDivElement>(null);
+  const pdfRef = useRef<HTMLDivElement>(null);
   const setPageTitle = useDashboardTitle();
 
   const [pageLoading, setPageLoading] = useState(true);
@@ -722,21 +723,27 @@ export default function EditServiceInvoicePage() {
 
   /* ---------- Download PDF (unchanged logic) ---------- */
   const handleDownloadPDF = async () => {
-    if (!printRef.current) return;
+    if (!pdfRef.current) return;
     setDownloading(true);
     const tid = toast.loading("Generating PDF…");
     try {
-      const canvas = await html2canvas(printRef.current, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: "#ffffff",
-      });
-      const imgData = canvas.toDataURL("image/jpeg", 0.98);
-      const pdfWidthPt = 595.28;
-      const pdfHeightPt = (canvas.height / canvas.width) * pdfWidthPt;
-      const pdf = new jsPDF({ orientation: "portrait", unit: "pt", format: [pdfWidthPt, pdfHeightPt] });
-      pdf.addImage(imgData, "JPEG", 0, 0, pdfWidthPt, pdfHeightPt);
+      const pageEls = pdfRef.current.querySelectorAll<HTMLElement>("[data-invoice-page]");
+      if (!pageEls.length) {
+        toast.error("Not ready", { id: tid });
+        return;
+      }
+      const pdf = new jsPDF({ orientation: "portrait", unit: "px", format: [PAGE_WIDTH_2, PAGE_HEIGHT_2] });
+      for (let i = 0; i < pageEls.length; i++) {
+        const canvas = await html2canvas(pageEls[i], {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          backgroundColor: "#ffffff",
+        });
+        const imgData = canvas.toDataURL("image/png");
+        if (i > 0) pdf.addPage([PAGE_WIDTH_2, PAGE_HEIGHT_2], "portrait");
+        pdf.addImage(imgData, "PNG", 0, 0, PAGE_WIDTH_2, PAGE_HEIGHT_2);
+      }
       pdf.save(`${formData.invoiceNumber || "invoice"}.pdf`);
       toast.success("PDF Downloaded", { id: tid });
     } catch {
@@ -1301,6 +1308,13 @@ export default function EditServiceInvoicePage() {
               </div>
             </div>
           </div>
+        </div>
+
+        <div
+          aria-hidden="true"
+          style={{ position: "fixed", left: "-9999px", top: 0, opacity: 0, pointerEvents: "none" }}
+        >
+          <ServiceInvoicePreview data={{ ...formData, total: liveTotal }} ref={pdfRef} />
         </div>
       </>
     </div>

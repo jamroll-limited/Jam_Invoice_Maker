@@ -13,7 +13,7 @@ import {
   Trash2, Plus, Download, ArrowLeft, FileText, User, CreditCard,
   Package, Upload, Eye, X,
 } from "lucide-react";
-import { InvoicePreview } from "@/components/InvoicePreview";
+import { InvoicePreview, PAGE_HEIGHT, PAGE_WIDTH } from "@/components/InvoicePreview";
 import { InvoiceFormData } from "@/types/invoice";
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
@@ -57,6 +57,7 @@ export default function EditInvoicePage() {
   const { id } = useParams();
   const router = useRouter();
   const printRef = useRef<HTMLDivElement>(null);
+  const pdfRef = useRef<HTMLDivElement>(null);
   const setPageTitle = useDashboardTitle();
 
   const [pageLoading, setPageLoading] = useState(true);
@@ -223,21 +224,27 @@ export default function EditInvoicePage() {
 
   /* ---------- Download PDF (unchanged logic) ---------- */
   const handleDownloadPDF = async () => {
-    if (!printRef.current) return;
+    if (!pdfRef.current) return;
     setDownloading(true);
     const tid = toast.loading("Generating PDF…");
     try {
-      const canvas = await html2canvas(printRef.current, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: "#ffffff",
-      });
-      const imgData = canvas.toDataURL("image/jpeg", 0.98);
-      const pdfWidthPt = 595.28;
-      const pdfHeightPt = (canvas.height / canvas.width) * pdfWidthPt;
-      const pdf = new jsPDF({ orientation: "portrait", unit: "pt", format: [pdfWidthPt, pdfHeightPt] });
-      pdf.addImage(imgData, "JPEG", 0, 0, pdfWidthPt, pdfHeightPt);
+      const pageEls = pdfRef.current.querySelectorAll<HTMLElement>("[data-invoice-page]");
+      if (!pageEls.length) {
+        toast.error("Not ready", { id: tid });
+        return;
+      }
+      const pdf = new jsPDF({ orientation: "portrait", unit: "px", format: [PAGE_WIDTH, PAGE_HEIGHT] });
+      for (let i = 0; i < pageEls.length; i++) {
+        const canvas = await html2canvas(pageEls[i], {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          backgroundColor: "#ffffff",
+        });
+        const imgData = canvas.toDataURL("image/png");
+        if (i > 0) pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT], "portrait");
+        pdf.addImage(imgData, "PNG", 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
+      }
       pdf.save(`${formData.invoiceNumber || "invoice"}.pdf`);
       toast.success("PDF Downloaded", { id: tid });
     } catch {
@@ -818,6 +825,13 @@ export default function EditInvoicePage() {
             </div>
           </div>
         </div>
+      </div>
+
+      <div
+        aria-hidden="true"
+        style={{ position: "fixed", left: "-9999px", top: 0, opacity: 0, pointerEvents: "none" }}
+      >
+        <InvoicePreview data={{ ...formData, total: liveTotal }} ref={pdfRef} />
       </div>
     </div>
   );
