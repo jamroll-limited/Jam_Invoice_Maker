@@ -719,50 +719,6 @@ export default function CreateQuotationPage() {
                   </div>
                 </div>
 
-                {/* From */}
-                <div className="border-t border-slate-100 pt-4">
-                  <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em] text-slate-400">
-                    <Building2 className="h-3.5 w-3.5" />
-                    Your Company (From)
-                  </h3>
-
-                  {/* Preset company search */}
-                  <div className="mb-4">
-                    <CompanySearch
-                      companies={presetCompanies}
-                      onSelect={applyPresetCompany}
-                    />
-                    {presetCompanies.length === 0 && (
-                      <p className="mt-2 text-xs text-slate-400">
-                        No preset companies yet.{" "}
-                        <Link href="/dashboard/companies" className="font-medium text-[#5A378F] hover:underline">
-                          Add one now
-                        </Link>
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <Field label="Company Name">
-                      <Input value={formData.from?.name} onChange={(e) => updateFrom("name", e.target.value)} className={inputClass} />
-                    </Field>
-                    <Field label="Email">
-                      <Input value={formData.from?.email} onChange={(e) => updateFrom("email", e.target.value)} className={inputClass} />
-                    </Field>
-                    <Field label="Phone">
-                      <Input value={formData.from?.phone} onChange={(e) => updateFrom("phone", e.target.value)} className={inputClass} />
-                    </Field>
-                    <Field label="Address">
-                      <Textarea
-                        value={formData.from?.address}
-                        onChange={(e) => updateFrom("address", e.target.value)}
-                        className={cn(inputClass, "resize-none")}
-                        rows={2}
-                      />
-                    </Field>
-                  </div>
-                </div>
-
                 {/* Logo */}
                 <div className="border-t border-slate-100 pt-4">
                   <Field label="Logo" hint="PNG, JPG, or SVG up to ~2MB">
@@ -811,6 +767,51 @@ export default function CreateQuotationPage() {
                     </div>
                   </Field>
                 </div>
+
+                {/* From */}
+                <div className="border-t border-slate-100 pt-4">
+                  <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em] text-slate-400">
+                    <Building2 className="h-3.5 w-3.5" />
+                    Your Company (From)
+                  </h3>
+
+                  {/* Preset company search */}
+                  <div className="mb-4">
+                    <CompanySearch
+                      companies={presetCompanies}
+                      onSelect={applyPresetCompany}
+                    />
+                    {presetCompanies.length === 0 && (
+                      <p className="mt-2 text-xs text-slate-400">
+                        No preset companies yet.{" "}
+                        <Link href="/dashboard/companies" className="font-medium text-[#5A378F] hover:underline">
+                          Add one now
+                        </Link>
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <Field label="Company Name">
+                      <Input value={formData.from?.name} onChange={(e) => updateFrom("name", e.target.value)} className={inputClass} />
+                    </Field>
+                    <Field label="Email">
+                      <Input value={formData.from?.email} onChange={(e) => updateFrom("email", e.target.value)} className={inputClass} />
+                    </Field>
+                    <Field label="Phone">
+                      <Input value={formData.from?.phone} onChange={(e) => updateFrom("phone", e.target.value)} className={inputClass} />
+                    </Field>
+                    <Field label="Address">
+                      <Textarea
+                        value={formData.from?.address}
+                        onChange={(e) => updateFrom("address", e.target.value)}
+                        className={cn(inputClass, "resize-none")}
+                        rows={2}
+                      />
+                    </Field>
+                  </div>
+                </div>
+
               </TabsContent>
 
               {/* CLIENT TAB */}

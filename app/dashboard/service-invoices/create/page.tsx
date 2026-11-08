@@ -1,26 +1,33 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import {
-  Trash2, Plus, Search, X, UserPlus, ChevronDown, ChevronUp,
-  Building2, FileText, User, CreditCard, Wrench, Upload, Eye,
-  Pause, CheckCircle2, Clock,
+  Trash2, Plus, Search, X, UserPlus,
+  FileText, User, Package, CreditCard, Upload, Eye, Wrench,
+  Pause, CheckCircle2, Clock, Building2, Landmark,
 } from "lucide-react";
-import { ServiceInvoicePreview } from "@/components/ServiceInvoicePreview";
+import { ServiceInvoicePreview, PAGE_WIDTH_2, PAGE_HEIGHT_2 } from "@/components/ServiceInvoicePreview";
 import { ServiceInvoiceFormData, ServiceGroup, ServiceItem } from "@/types/invoice";
+import { ClientData } from "@/types/client";
+import { CompanyData } from "@/types/company";
+import { BankAccountData } from "@/types/bankAccount";
+import { CompanySearch } from "@/components/CompanySearch";
+import { BankAccountSearch } from "@/components/BankAccountSearch";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
+import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
+import Link from "next/link";
 
 /* ------------------------------------------------------------------ */
-/*  Field wrapper — consistent label + input spacing                   */
+/*  Field wrapper                                                      */
 /* ------------------------------------------------------------------ */
 function Field({
   label,
@@ -48,13 +55,13 @@ function Field({
 const inputClass = "bg-slate-50/60 text-sm transition-all focus:bg-white";
 
 /* ------------------------------------------------------------------ */
-/*  Quick-Add Client Dialog                                            */
+/*  Quick-Add Client Dialog                                           */
 /* ------------------------------------------------------------------ */
 function AddClientDialog({
   onSave,
   onClose,
 }: {
-  onSave: (c: any) => void;
+  onSave: (c: ClientData) => void;
   onClose: () => void;
 }) {
   const [form, setForm] = useState({ name: "", companyName: "", email: "", phone: "", address: "" });
@@ -89,7 +96,7 @@ function AddClientDialog({
       <div className="w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_24px_48px_-12px_rgba(15,23,42,0.25)]">
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
           <div className="flex items-center gap-2.5">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#5A378F]/10 text-[#5A378F]">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#51B9A9]/10 text-[#0E8A7C]">
               <UserPlus className="h-4 w-4" aria-hidden="true" />
             </span>
             <h3 className="text-sm font-semibold text-slate-900">Add New Client</h3>
@@ -106,72 +113,31 @@ function AddClientDialog({
         <div className="space-y-4 px-6 py-5">
           <div className="grid grid-cols-2 gap-4">
             <Field label="Name" required>
-              <Input
-                value={form.name}
-                onChange={(e) => set("name", e.target.value)}
-                placeholder="John Doe"
-                className={inputClass}
-                autoFocus
-              />
+              <Input value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="John Doe" className={inputClass} autoFocus />
             </Field>
             <Field label="Company Name">
-              <Input
-                value={form.companyName}
-                onChange={(e) => set("companyName", e.target.value)}
-                placeholder="Acme Corp"
-                className={inputClass}
-              />
+              <Input value={form.companyName} onChange={(e) => set("companyName", e.target.value)} placeholder="Acme Corp" className={inputClass} />
             </Field>
             <Field label="Email">
-              <Input
-                type="email"
-                value={form.email}
-                onChange={(e) => set("email", e.target.value)}
-                placeholder="john@example.com"
-                className={inputClass}
-              />
+              <Input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} placeholder="john@example.com" className={inputClass} />
             </Field>
             <Field label="Phone">
-              <Input
-                value={form.phone}
-                onChange={(e) => set("phone", e.target.value)}
-                placeholder="+1 234 567 890"
-                className={inputClass}
-              />
+              <Input value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="+1 234 567 890" className={inputClass} />
             </Field>
             <div className="col-span-2">
               <Field label="Address">
-                <Textarea
-                  value={form.address}
-                  onChange={(e) => set("address", e.target.value)}
-                  placeholder="123 Main St, City"
-                  rows={2}
-                  className={cn(inputClass, "resize-none")}
-                />
+                <Textarea value={form.address} onChange={(e) => set("address", e.target.value)} placeholder="123 Main St, City" rows={2} className={cn(inputClass, "resize-none")} />
               </Field>
             </div>
           </div>
         </div>
 
         <div className="flex justify-end gap-2 border-t border-slate-100 bg-slate-50/50 px-6 py-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onClose}
-            disabled={saving}
-            className="gap-1.5 rounded-lg border-slate-200 hover:bg-slate-100"
-          >
-            <X className="h-3.5 w-3.5" />
-            Cancel
+          <Button variant="outline" size="sm" onClick={onClose} disabled={saving} className="gap-1.5 rounded-lg border-slate-200 hover:bg-slate-100">
+            <X className="h-3.5 w-3.5" /> Cancel
           </Button>
-          <Button
-            size="sm"
-            onClick={handleSave}
-            disabled={saving || !form.name.trim()}
-            className="gap-1.5 rounded-lg bg-[#5A378F] text-white shadow-[0_2px_8px_-2px_rgba(90,55,143,0.5)] hover:bg-[#4a2d7a]"
-          >
-            {saving ? <Spinner className="h-3.5 w-3.5" /> : <UserPlus className="h-3.5 w-3.5" />}
-            Save &amp; Use
+          <Button size="sm" onClick={handleSave} disabled={saving || !form.name.trim()} className="gap-1.5 rounded-lg bg-[#5A378F] text-white shadow-[0_2px_8px_-2px_rgba(90,55,143,0.5)] hover:bg-[#4a2d7a]">
+            {saving ? <Spinner className="h-3.5 w-3.5" /> : <UserPlus className="h-3.5 w-3.5" />} Save &amp; Use
           </Button>
         </div>
       </div>
@@ -187,8 +153,8 @@ function ClientSearch({
   onSelect,
   onAddNew,
 }: {
-  clients: any[];
-  onSelect: (c: any) => void;
+  clients: ClientData[];
+  onSelect: (c: ClientData) => void;
   onAddNew: () => void;
 }) {
   const [query, setQuery] = useState("");
@@ -199,7 +165,8 @@ function ClientSearch({
     ? clients.filter(
       (c) =>
         c.name.toLowerCase().includes(query.toLowerCase()) ||
-        c.email?.toLowerCase().includes(query.toLowerCase()),
+        c.companyName.toLowerCase().includes(query.toLowerCase()) ||
+        c.email.toLowerCase().includes(query.toLowerCase()),
     )
     : clients;
 
@@ -220,10 +187,7 @@ function ClientSearch({
           placeholder="Search preset clients…"
           value={query}
           onFocus={() => setOpen(true)}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            setOpen(true);
-          }}
+          onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
         />
       </div>
       {open && (
@@ -235,11 +199,7 @@ function ClientSearch({
             <button
               key={c._id}
               type="button"
-              onClick={() => {
-                onSelect(c);
-                setQuery("");
-                setOpen(false);
-              }}
+              onClick={() => { onSelect(c); setQuery(""); setOpen(false); }}
               className="flex w-full items-center gap-3 border-b border-slate-100 px-4 py-3 text-left transition-colors last:border-0 hover:bg-slate-50"
             >
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#51B9A9]/10 text-xs font-semibold text-[#0E8A7C]">
@@ -257,14 +217,10 @@ function ClientSearch({
           ))}
           <button
             type="button"
-            onClick={() => {
-              setOpen(false);
-              onAddNew();
-            }}
+            onClick={() => { setOpen(false); onAddNew(); }}
             className="flex w-full items-center gap-2 border-t border-slate-100 px-4 py-3 text-sm font-medium text-[#5A378F] transition-colors hover:bg-[#EEEDFE]/50"
           >
-            <UserPlus className="h-4 w-4" />
-            Add new client
+            <UserPlus className="h-4 w-4" /> Add new client
           </button>
         </div>
       )}
@@ -307,364 +263,233 @@ function SaveButton({
 }
 
 /* ------------------------------------------------------------------ */
-/*  Service Card                                                       */
+/*  Defaults                                                           */
 /* ------------------------------------------------------------------ */
-function ServiceCard({
-  service,
-  serviceIdx,
-  onUpdateName,
-  onAddItem,
-  onUpdateItem,
-  onRemoveItem,
-  onAddSubItem,
-  onUpdateSubItem,
-  onRemoveSubItem,
-  onRemoveService,
-}: {
-  service: ServiceGroup;
-  serviceIdx: number;
-  onUpdateName: (v: string) => void;
-  onAddItem: () => void;
-  onUpdateItem: (ii: number, f: string, v: string | number) => void;
-  onRemoveItem: (ii: number) => void;
-  onAddSubItem: (ii: number) => void;
-  onUpdateSubItem: (ii: number, si: number, v: string) => void;
-  onRemoveSubItem: (ii: number, si: number) => void;
-  onRemoveService: () => void;
-}) {
-  const [collapsed, setCollapsed] = useState(false);
-  const subtotal = service.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
+const defaultServiceItem = (): ServiceItem => ({
+  name: "",
+  quantity: 1,
+  unitPrice: 0,
+  note: "",
+  subItems: [],
+});
 
-  return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-[0_1px_3px_-1px_rgba(15,23,42,0.06)]">
-      {/* Service header */}
-      <div className="flex items-center justify-between gap-3 border-b border-slate-100 bg-[#51B9A9]/5 px-4 py-3">
-        <div className="flex min-w-0 flex-1 items-center gap-2.5">
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#51B9A9]/10 text-[#0E8A7C]">
-            <Wrench className="h-3.5 w-3.5" aria-hidden="true" />
-          </span>
-          <span className="shrink-0 text-[11px] font-bold uppercase tracking-[0.1em] text-[#0E8A7C]">
-            Service {serviceIdx + 1}
-          </span>
-          <Input
-            value={service.serviceName}
-            onChange={(e) => onUpdateName(e.target.value)}
-            placeholder="e.g. Graphics Design Service"
-            className="h-8 flex-1 border-slate-200 bg-white text-sm font-semibold text-slate-900 focus:border-[#5A378F]/40 focus:ring-[#5A378F]/20"
-          />
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <span className="rounded-full bg-[#51B9A9]/10 px-2.5 py-1 text-xs font-bold text-[#0E8A7C]">
-            ${subtotal.toFixed(2)}
-          </span>
-          <button
-            onClick={() => setCollapsed((c) => !c)}
-            className="rounded-md p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5A378F]/30"
-            aria-label={collapsed ? "Expand service" : "Collapse service"}
-          >
-            {collapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
-          </button>
-          <button
-            onClick={onRemoveService}
-            className="rounded-md p-1.5 text-[#EA2B7B] transition-colors hover:bg-[#FBEAF0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#EA2B7B]/30"
-            aria-label="Remove service"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
+const defaultServiceGroup = (): ServiceGroup => ({
+  serviceName: "",
+  items: [defaultServiceItem()],
+});
 
-      {/* Items */}
-      {!collapsed && (
-        <div className="space-y-3 bg-white p-4">
-          {service.items.map((item, ii) => (
-            <div
-              key={ii}
-              className="rounded-xl border border-slate-200 bg-slate-50/40 p-3"
-            >
-              {/* Item row */}
-              <div className="flex flex-wrap items-end gap-3">
-                <div className="min-w-[180px] flex-1">
-                  <Field label="Description">
-                    <Input
-                      value={item.name}
-                      onChange={(e) => onUpdateItem(ii, "name", e.target.value)}
-                      placeholder="Item description"
-                      className={cn("h-8", inputClass)}
-                    />
-                  </Field>
-                </div>
-                <div className="w-20">
-                  <Field label="Qty">
-                    <Input
-                      type="number"
-                      min={0}
-                      value={item.quantity}
-                      onChange={(e) => onUpdateItem(ii, "quantity", Number(e.target.value))}
-                      className={cn("h-8", inputClass)}
-                    />
-                  </Field>
-                </div>
-                <div className="w-28">
-                  <Field label="Unit Price">
-                    <Input
-                      type="number"
-                      min={0}
-                      step="0.01"
-                      value={item.unitPrice}
-                      onChange={(e) => onUpdateItem(ii, "unitPrice", Number(e.target.value))}
-                      className={cn("h-8", inputClass)}
-                    />
-                  </Field>
-                </div>
-                <div className="w-24">
-                  <Field label="Amount">
-                    <div className="flex h-8 items-center rounded-md border border-slate-200 bg-white px-2 text-sm font-semibold text-[#0E8A7C]">
-                      ${(item.quantity * item.unitPrice).toFixed(2)}
-                    </div>
-                  </Field>
-                </div>
-                <button
-                  onClick={() => onRemoveItem(ii)}
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-[#EA2B7B] transition-colors hover:bg-[#FBEAF0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#EA2B7B]/30"
-                  aria-label="Remove item"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              </div>
-
-              {/* Note */}
-              <div className="mt-3">
-                <Field label="Note (optional)">
-                  <Input
-                    placeholder="Add a note for this item…"
-                    value={item.note || ""}
-                    onChange={(e) => onUpdateItem(ii, "note", e.target.value)}
-                    className={cn("h-7 text-xs", inputClass)}
-                  />
-                </Field>
-              </div>
-
-              {/* Sub-items */}
-              <div className="mt-3 border-t border-slate-200 pt-3">
-                <div className="mb-2 flex items-center justify-between">
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">
-                    Sub-items
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => onAddSubItem(ii)}
-                    className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-[#5A378F] transition-colors hover:bg-[#EEEDFE]"
-                  >
-                    <Plus className="h-3 w-3" />
-                    Add sub-item
-                  </button>
-                </div>
-                <div className="space-y-2">
-                  {(item.subItems || []).map((sub, si) => (
-                    <div key={si} className="flex items-center gap-2">
-                      <span className="text-slate-300">—</span>
-                      <Input
-                        className={cn("h-7 flex-1 text-xs", inputClass)}
-                        placeholder="Sub-item description…"
-                        value={sub}
-                        onChange={(e) => onUpdateSubItem(ii, si, e.target.value)}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => onRemoveSubItem(ii, si)}
-                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[#EA2B7B] transition-colors hover:bg-[#FBEAF0]"
-                        aria-label="Remove sub-item"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          ))}
-
-          {/* Add item + service subtotal */}
-          <div className="flex items-center justify-between border-t border-slate-100 pt-3">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onAddItem}
-              className="h-7 gap-1 border-dashed border-[#5A378F]/40 text-xs text-[#5A378F] hover:bg-[#EEEDFE]/50"
-            >
-              <Plus className="h-3 w-3" />
-              Add Item
-            </Button>
-            <div className="text-sm font-semibold text-slate-600">
-              Service Subtotal:{" "}
-              <span className="text-slate-900">${subtotal.toFixed(2)}</span>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+const defaultPaymentInfo = () => ({
+  accountName: "",
+  accountNumber: "",
+  bankName: "",
+  branch: "",
+  swift: "",
+  routingNumber: "",
+  currency: "BDT",
+  note: "",
+});
 
 /* ------------------------------------------------------------------ */
 /*  Page                                                               */
 /* ------------------------------------------------------------------ */
-const defaultService = (): ServiceGroup => ({
-  serviceName: "",
-  items: [{ name: "", quantity: 1, unitPrice: 0, note: "", subItems: [] }],
-});
-
 export default function CreateServiceInvoicePage() {
   const router = useRouter();
   const printRef = useRef<HTMLDivElement>(null);
+  const pdfRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [savingAs, setSavingAs] = useState<string | null>(null);
-  const [presetClients, setPresetClients] = useState<any[]>([]);
+  const [presetClients, setPresetClients] = useState<ClientData[]>([]);
+  const [presetCompanies, setPresetCompanies] = useState<CompanyData[]>([]);
+  const [presetBankAccounts, setPresetBankAccounts] = useState<BankAccountData[]>([]);
   const [showAddClient, setShowAddClient] = useState(false);
 
   const [formData, setFormData] = useState<Partial<ServiceInvoiceFormData>>({
     type: "serviceInvoice",
     status: "Unpaid",
     invoiceNumber: "",
-    name: "Invoice",
+    name: "Service Invoice",
     date: new Date(),
     dueDate: new Date(),
     from: { name: "", email: "", phone: "", address: "" },
     to: { name: "", email: "", phone: "", address: "" },
-    paymentInfo: { accountName: "", accountNumber: "", bankName: "", branch: "", swift: "", routingNumber: "", currency: "BDT" },
-    services: [defaultService()],
+    paymentInfo: defaultPaymentInfo(),
+    services: [defaultServiceGroup()],
     vat: 0,
     discount: 0,
     advancePaid: 0,
     total: 0,
   });
 
-  /* ---------- Init (unchanged) ---------- */
+  /* ---------- Init: generate number + load presets ---------- */
   useEffect(() => {
     setFormData((prev) => ({
       ...prev,
-      invoiceNumber: "INV2-" + Math.floor(Math.random() * 10000).toString().padStart(4, "0"),
+      invoiceNumber: "SVI-" + Math.floor(Math.random() * 10000).toString().padStart(4, "0"),
       dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
     }));
-    fetch("/api/clients")
-      .then((r) => r.json())
-      .then((data) => {
-        if (Array.isArray(data)) setPresetClients(data);
+
+    Promise.all([
+      fetch("/api/clients").then((r) => r.json()),
+      fetch("/api/companies").then((r) => r.json()),
+      fetch("/api/bank-accounts").then((r) => r.json()),
+    ])
+      .then(([clients, companies, bankAccounts]) => {
+        if (Array.isArray(clients)) setPresetClients(clients);
+        if (Array.isArray(companies)) setPresetCompanies(companies);
+        if (Array.isArray(bankAccounts)) setPresetBankAccounts(bankAccounts);
       })
       .catch(() => { });
   }, []);
 
-  /* ---------- Computed totals (unchanged) ---------- */
-  const grandSubtotal = (formData.services || []).reduce(
-    (s, svc) => s + svc.items.reduce((a, i) => a + i.quantity * i.unitPrice, 0),
-    0,
-  );
-  const totalAmount =
-    (grandSubtotal - (formData.discount || 0)) * (1 + (formData.vat || 0) / 100) -
-    (formData.advancePaid || 0);
-  if (formData.total !== totalAmount) setFormData((p) => ({ ...p, total: totalAmount }));
-
-  /* ---------- Client helpers (unchanged) ---------- */
-  const applyPresetClient = (client: any) => {
-    setFormData((p) => ({
-      ...p,
+  /* ---------- Preset loaders ---------- */
+  const applyPresetClient = (client: ClientData) => {
+    setFormData((prev) => ({
+      ...prev,
       to: { name: client.name, email: client.email, phone: client.phone, address: client.address },
-      // auto-fill "Your Company (From)" — only overrides when the client has data
-      from: client.from
-        ? { ...p.from, ...client.from }
-        : p.from,
-      // auto-fill bank details — each field only overrides when the client has data
-      paymentInfo: {
-        ...p.paymentInfo!,
-        accountName: client.accountName ?? p.paymentInfo?.accountName ?? "",
-        accountNumber: client.accountNumber ?? p.paymentInfo?.accountNumber ?? "",
-        bankName: client.bankName ?? p.paymentInfo?.bankName ?? "",
-        branch: client.branch ?? p.paymentInfo?.branch ?? "",
-        swift: client.swift ?? p.paymentInfo?.swift ?? "",
-        routingNumber: client.routingNumber ?? p.paymentInfo?.routingNumber ?? "",
-      },
     }));
     toast.success(`Loaded "${client.name}"`);
   };
 
-  const handleNewClientSaved = (client: any) => {
-    setPresetClients((p) => [...p, client].sort((a, b) => a.name.localeCompare(b.name)));
+  const applyPresetCompany = (company: CompanyData) => {
+    setFormData((prev) => ({
+      ...prev,
+      from: {
+        name: company.name || prev.from?.name || "",
+        email: company.email || prev.from?.email || "",
+        phone: company.phone || prev.from?.phone || "",
+        address: company.address || prev.from?.address || "",
+      },
+    }));
+    toast.success(`Loaded company "${company.name}"`);
+  };
+
+  const applyPresetBankAccount = (acct: BankAccountData) => {
+    setFormData((prev) => ({
+      ...prev,
+      paymentInfo: {
+        accountName: acct.accountName || prev.paymentInfo?.accountName || "",
+        accountNumber: acct.accountNumber || prev.paymentInfo?.accountNumber || "",
+        bankName: acct.bankName || prev.paymentInfo?.bankName || "",
+        branch: acct.branch || prev.paymentInfo?.branch || "",
+        swift: acct.swift || prev.paymentInfo?.swift || "",
+        routingNumber: acct.routingNumber || prev.paymentInfo?.routingNumber || "",
+        currency: acct.currency || prev.paymentInfo?.currency || "BDT",
+        note: acct.note ?? prev.paymentInfo?.note ?? "",
+      },
+    }));
+    toast.success(`Loaded bank account "${acct.label}"`);
+  };
+
+  const handleNewClientSaved = (client: ClientData) => {
+    setPresetClients((prev) => [...prev, client].sort((a, b) => a.name.localeCompare(b.name)));
     applyPresetClient(client);
     setShowAddClient(false);
   };
 
-  /* ---------- Service helpers (unchanged) ---------- */
-  const updateServices = (fn: (prev: ServiceGroup[]) => ServiceGroup[]) =>
-    setFormData((p) => ({ ...p, services: fn([...(p.services || [])]) }));
+  /* ---------- Field updaters ---------- */
+  const updateTo = (field: string, value: string) =>
+    setFormData((prev) => ({ ...prev, to: { ...prev.to!, [field]: value } }));
+  const updateFrom = (field: string, value: string) =>
+    setFormData((prev) => ({ ...prev, from: { ...prev.from!, [field]: value } }));
+  const updatePayment = (field: string, value: string) =>
+    setFormData((prev) => ({ ...prev, paymentInfo: { ...prev.paymentInfo!, [field]: value } }));
 
-  const addService = () => updateServices((s) => [...s, defaultService()]);
-  const removeService = (si: number) => updateServices((s) => s.filter((_, i) => i !== si));
-  const updateServiceName = (si: number, v: string) =>
-    updateServices((s) => {
-      s[si] = { ...s[si], serviceName: v };
-      return s;
+  /* ---------- Service group / item handlers ---------- */
+  const addServiceGroup = () =>
+    setFormData((prev) => ({
+      ...prev,
+      services: [...(prev.services || []), defaultServiceGroup()],
+    }));
+
+  const removeServiceGroup = (gi: number) =>
+    setFormData((prev) => {
+      const services = [...(prev.services || [])];
+      services.splice(gi, 1);
+      return { ...prev, services: services.length ? services : [defaultServiceGroup()] };
     });
 
-  const addItem = (si: number) =>
-    updateServices((s) => {
-      s[si] = {
-        ...s[si],
-        items: [...s[si].items, { name: "", quantity: 1, unitPrice: 0, note: "", subItems: [] }],
+  const updateServiceGroupName = (gi: number, value: string) =>
+    setFormData((prev) => {
+      const services = [...(prev.services || [])];
+      services[gi] = { ...services[gi], serviceName: value };
+      return { ...prev, services };
+    });
+
+  const addServiceItem = (gi: number) =>
+    setFormData((prev) => {
+      const services = [...(prev.services || [])];
+      services[gi] = {
+        ...services[gi],
+        items: [...services[gi].items, defaultServiceItem()],
       };
-      return s;
+      return { ...prev, services };
     });
-  const removeItem = (si: number, ii: number) =>
-    updateServices((s) => {
-      const items = [...s[si].items];
+
+  const removeServiceItem = (gi: number, ii: number) =>
+    setFormData((prev) => {
+      const services = [...(prev.services || [])];
+      const items = [...services[gi].items];
       items.splice(ii, 1);
-      s[si] = { ...s[si], items };
-      return s;
-    });
-  const updateItem = (si: number, ii: number, f: string, v: string | number) =>
-    updateServices((s) => {
-      const items = [...s[si].items];
-      items[ii] = { ...items[ii], [f]: v };
-      s[si] = { ...s[si], items };
-      return s;
+      services[gi] = { ...services[gi], items: items.length ? items : [defaultServiceItem()] };
+      return { ...prev, services };
     });
 
-  const addSubItem = (si: number, ii: number) =>
-    updateServices((s) => {
-      const items = [...s[si].items];
+  const updateServiceItem = (gi: number, ii: number, field: string, value: string | number) =>
+    setFormData((prev) => {
+      const services = [...(prev.services || [])];
+      const items = [...services[gi].items];
+      items[ii] = { ...items[ii], [field]: value };
+      services[gi] = { ...services[gi], items };
+      return { ...prev, services };
+    });
+
+  const addSubItem = (gi: number, ii: number) =>
+    setFormData((prev) => {
+      const services = [...(prev.services || [])];
+      const items = [...services[gi].items];
       items[ii] = { ...items[ii], subItems: [...(items[ii].subItems || []), ""] };
-      s[si] = { ...s[si], items };
-      return s;
-    });
-  const updateSubItem = (si: number, ii: number, subI: number, v: string) =>
-    updateServices((s) => {
-      const items = [...s[si].items];
-      const subs = [...(items[ii].subItems || [])];
-      subs[subI] = v;
-      items[ii] = { ...items[ii], subItems: subs };
-      s[si] = { ...s[si], items };
-      return s;
-    });
-  const removeSubItem = (si: number, ii: number, subI: number) =>
-    updateServices((s) => {
-      const items = [...s[si].items];
-      const subs = [...(items[ii].subItems || [])];
-      subs.splice(subI, 1);
-      items[ii] = { ...items[ii], subItems: subs };
-      s[si] = { ...s[si], items };
-      return s;
+      services[gi] = { ...services[gi], items };
+      return { ...prev, services };
     });
 
-  /* ---------- Other helpers (unchanged) ---------- */
-  const updateTo = (f: string, v: string) =>
-    setFormData((p) => ({ ...p, to: { ...p.to!, [f]: v } }));
-  const updateFrom = (f: string, v: string) =>
-    setFormData((p) => ({ ...p, from: { ...p.from!, [f]: v } }));
-  const updatePayment = (f: string, v: string) =>
-    setFormData((p) => ({ ...p, paymentInfo: { ...p.paymentInfo!, [f]: v } }));
+  const updateSubItem = (gi: number, ii: number, si: number, value: string) =>
+    setFormData((prev) => {
+      const services = [...(prev.services || [])];
+      const items = [...services[gi].items];
+      const subItems = [...(items[ii].subItems || [])];
+      subItems[si] = value;
+      items[ii] = { ...items[ii], subItems };
+      services[gi] = { ...services[gi], items };
+      return { ...prev, services };
+    });
 
-  /* ---------- Logo upload (unchanged) ---------- */
+  const removeSubItem = (gi: number, ii: number, si: number) =>
+    setFormData((prev) => {
+      const services = [...(prev.services || [])];
+      const items = [...services[gi].items];
+      const subItems = [...(items[ii].subItems || [])];
+      subItems.splice(si, 1);
+      items[ii] = { ...items[ii], subItems };
+      services[gi] = { ...services[gi], items };
+      return { ...prev, services };
+    });
+
+  /* ---------- Total calc ---------- */
+  const subtotal = useMemo(
+    () => (formData.services || []).reduce(
+      (acc, grp) => acc + grp.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0),
+      0,
+    ),
+    [formData.services],
+  );
+  const totalAmount = (subtotal - (formData.discount || 0)) * (1 + (formData.vat || 0) / 100) - (formData.advancePaid || 0);
+  if (formData.total !== totalAmount) {
+    setFormData((prev) => ({ ...prev, total: totalAmount }));
+  }
+
+  /* ---------- Logo upload ---------- */
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -675,10 +500,10 @@ export default function CreateServiceInvoicePage() {
       const res = await fetch("/api/upload", { method: "POST", body: form });
       const data = await res.json();
       if (res.ok) {
-        setFormData((p) => ({ ...p, logoUrl: data.url }));
+        setFormData((prev) => ({ ...prev, logoUrl: data.url }));
         toast.success("Logo uploaded");
       } else {
-        toast.error(data.message || "Upload failed");
+        toast.error(data.message || "Failed to upload logo");
       }
     } catch {
       toast.error("Upload error");
@@ -687,29 +512,18 @@ export default function CreateServiceInvoicePage() {
     }
   };
 
-  /* ---------- Save (unchanged) ---------- */
+  /* ---------- Save ---------- */
   const handleSave = async (status: "Paid" | "Unpaid" | "Hold") => {
-    // Drop empty services and empty items so Mongoose `required: true`
-    // on `serviceName` and `name` doesn't fail.
-    // A service group is kept only if it has at least one named item.
-    // If the group has named items but no serviceName, give it a fallback name.
+    // Make sure at least one service group has a non-empty item name
     const cleanedServices = (formData.services || [])
-      .map((svc, svcIdx) => {
-        const namedItems = (svc.items || []).filter(
-          (it) => (it.name || "").trim() !== "",
-        );
-        const serviceName = (svc.serviceName || "").trim();
-        return {
-          ...svc,
-          serviceName:
-            serviceName !== "" ? serviceName : `Service ${svcIdx + 1}`,
-          items: namedItems,
-        };
-      })
-      .filter((svc) => svc.items.length > 0);
+      .map((g) => ({
+        serviceName: g.serviceName,
+        items: g.items.filter((it) => (it.name || "").trim() !== ""),
+      }))
+      .filter((g) => g.items.length > 0);
 
     if (cleanedServices.length === 0) {
-      toast.error("Add at least one service with an item description.");
+      toast.error("Add at least one line item with a description.");
       return;
     }
 
@@ -722,11 +536,11 @@ export default function CreateServiceInvoicePage() {
         body: JSON.stringify({ ...formData, services: cleanedServices, status }),
       });
       if (res.ok) {
-        toast.success(`Invoice saved as ${status}`);
+        toast.success("Service invoice saved");
         router.push("/dashboard/service-invoices");
       } else {
         const data = await res.json();
-        toast.error(data.message || "Failed to save invoice");
+        toast.error(data.message || "Failed to save service invoice");
       }
     } catch {
       toast.error("An error occurred");
@@ -758,7 +572,7 @@ export default function CreateServiceInvoicePage() {
               Create Service Invoice
             </h1>
             <p className="mt-1 text-sm text-slate-500">
-              Group your services into billable categories and watch the preview update live.
+              Build a service invoice with grouped line items. Preset data can be auto-filled below.
             </p>
           </div>
 
@@ -770,7 +584,7 @@ export default function CreateServiceInvoicePage() {
               icon={Pause}
               className="border-[#E0B400]/40 bg-[#FFF8E1] text-[#7A5C00] hover:bg-[#F9C551]/30 focus-visible:ring-[#E0B400]/40"
             >
-              Save Hold
+              Save Draft
             </SaveButton>
             <SaveButton
               onClick={() => handleSave("Unpaid")}
@@ -797,47 +611,43 @@ export default function CreateServiceInvoicePage() {
         <div className="flex flex-col gap-5 xl:flex-row">
           {/* Editor / Form */}
           <div className="w-full space-y-5 rounded-2xl border border-slate-200/70 bg-white p-6 shadow-[0_1px_3px_-1px_rgba(15,23,42,0.06)] xl:w-1/2">
-            <Tabs defaultValue="services" className="w-full">
+            <Tabs defaultValue="details" className="w-full">
               <TabsList className="grid w-full grid-cols-4 gap-1 rounded-xl bg-slate-100 p-1.5">
-                <TabsTrigger
-                  value="details"
-                  className="gap-1.5 rounded-lg text-xs font-medium text-slate-500 data-[state=active]:bg-white data-[state=active]:text-[#5A378F] data-[state=active]:shadow-sm"
-                >
+                <TabsTrigger value="details" className="gap-1.5 rounded-lg text-xs font-medium text-slate-500 data-[state=active]:bg-white data-[state=active]:text-[#5A378F] data-[state=active]:shadow-sm">
                   <FileText className="h-3.5 w-3.5" />
                   <span className="hidden sm:inline">Details</span>
                 </TabsTrigger>
-                <TabsTrigger
-                  value="client"
-                  className="gap-1.5 rounded-lg text-xs font-medium text-slate-500 data-[state=active]:bg-white data-[state=active]:text-[#5A378F] data-[state=active]:shadow-sm"
-                >
+                <TabsTrigger value="client" className="gap-1.5 rounded-lg text-xs font-medium text-slate-500 data-[state=active]:bg-white data-[state=active]:text-[#5A378F] data-[state=active]:shadow-sm">
                   <User className="h-3.5 w-3.5" />
                   <span className="hidden sm:inline">Client</span>
                 </TabsTrigger>
-                <TabsTrigger
-                  value="services"
-                  className="gap-1.5 rounded-lg text-xs font-medium text-slate-500 data-[state=active]:bg-white data-[state=active]:text-[#5A378F] data-[state=active]:shadow-sm"
-                >
-                  <Wrench className="h-3.5 w-3.5" />
+                <TabsTrigger value="items" className="gap-1.5 rounded-lg text-xs font-medium text-slate-500 data-[state=active]:bg-white data-[state=active]:text-[#5A378F] data-[state=active]:shadow-sm">
+                  <Package className="h-3.5 w-3.5" />
                   <span className="hidden sm:inline">Services</span>
                 </TabsTrigger>
-                <TabsTrigger
-                  value="payment"
-                  className="gap-1.5 rounded-lg text-xs font-medium text-slate-500 data-[state=active]:bg-white data-[state=active]:text-[#5A378F] data-[state=active]:shadow-sm"
-                >
+                <TabsTrigger value="payment" className="gap-1.5 rounded-lg text-xs font-medium text-slate-500 data-[state=active]:bg-white data-[state=active]:text-[#5A378F] data-[state=active]:shadow-sm">
                   <CreditCard className="h-3.5 w-3.5" />
                   <span className="hidden sm:inline">Payment</span>
                 </TabsTrigger>
               </TabsList>
 
-              {/* DETAILS TAB */}
+              {/* ====================== DETAILS TAB ====================== */}
               <TabsContent value="details" className="space-y-4 pt-4">
                 <div>
                   <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em] text-slate-400">
-                    <FileText className="h-3.5 w-3.5" />
-                    Invoice Details
+                    <Wrench className="h-3.5 w-3.5" />
+                    Service Invoice Details
                   </h3>
-                  {/* Row 1: Invoice Number + Document Name */}
+
+                  {/* Row 1 */}
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <Field label="Service Invoice Number">
+                      <Input
+                        value={formData.invoiceNumber}
+                        onChange={(e) => setFormData({ ...formData, invoiceNumber: e.target.value })}
+                        className={inputClass}
+                      />
+                    </Field>
                     <Field label="Document Name">
                       <Input
                         value={formData.name}
@@ -845,30 +655,23 @@ export default function CreateServiceInvoicePage() {
                         className={inputClass}
                       />
                     </Field>
-                    <Field label="Invoice Number">
-                      <Input
-                        value={formData.invoiceNumber}
-                        onChange={(e) => setFormData({ ...formData, invoiceNumber: e.target.value })}
-                        className={inputClass}
-                      />
-                    </Field>
                   </div>
 
-                  {/* Row 2: Description (full width) */}
+                  {/* Row 2: Description */}
                   <div className="mt-4">
                     <Field label="Description" hint="Shown on the invoice below the title">
                       <Textarea
                         value={formData.description || ""}
                         onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                        placeholder="e.g. Web development services for Q4 2024"
+                        placeholder="e.g. Professional services for November 2024"
                         rows={2}
                         className={cn(inputClass, "resize-none")}
                       />
                     </Field>
                   </div>
 
-                  {/* Row 3: Date + Due Date */}
-                  <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  {/* Row 3: Date + Due Date + Status */}
+                  <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
                     <Field label="Date">
                       <Input
                         type="date"
@@ -885,8 +688,24 @@ export default function CreateServiceInvoicePage() {
                         className={inputClass}
                       />
                     </Field>
+                    <Field label="Status">
+                      <select
+                        value={formData.status}
+                        onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
+                        className={cn(
+                          "w-full rounded-lg border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm text-slate-700 transition-all",
+                          "focus:border-[#5A378F]/40 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#5A378F]/20",
+                        )}
+                      >
+                        <option value="Paid">Paid</option>
+                        <option value="Unpaid">Due</option>
+                        <option value="Hold">Hold</option>
+                        <option value="Cancelled">Cancelled</option>
+                      </select>
+                    </Field>
                   </div>
                 </div>
+
 
                 {/* Logo */}
                 <div className="border-t border-slate-100 pt-4">
@@ -909,19 +728,9 @@ export default function CreateServiceInvoicePage() {
                           uploadingLogo && "opacity-60",
                         )}
                       >
-                        {uploadingLogo ? (
-                          <Spinner className="h-3.5 w-3.5" />
-                        ) : (
-                          <Upload className="h-3.5 w-3.5" />
-                        )}
+                        {uploadingLogo ? <Spinner className="h-3.5 w-3.5" /> : <Upload className="h-3.5 w-3.5" />}
                         {uploadingLogo ? "Uploading…" : formData.logoUrl ? "Replace" : "Upload"}
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleLogoUpload}
-                          disabled={uploadingLogo}
-                          className="hidden"
-                        />
+                        <input type="file" accept="image/*" onChange={handleLogoUpload} disabled={uploadingLogo} className="hidden" />
                       </label>
                       {formData.logoUrl && (
                         <button
@@ -937,12 +746,29 @@ export default function CreateServiceInvoicePage() {
                   </Field>
                 </div>
 
-                {/* From */}
+                {/* ============ From: Load from Preset Company ============ */}
                 <div className="border-t border-slate-100 pt-4">
                   <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em] text-slate-400">
                     <Building2 className="h-3.5 w-3.5" />
                     Your Company (From)
                   </h3>
+
+                  {/* ⬇⬇⬇ THIS IS THE "Load from Preset Company" SEARCH BAR ⬇⬇⬇ */}
+                  <div className="mb-4">
+                    <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">
+                      Load from Preset Company
+                    </p>
+                    <CompanySearch companies={presetCompanies} onSelect={applyPresetCompany} />
+                    {presetCompanies.length === 0 && (
+                      <p className="mt-2 text-xs text-slate-400">
+                        No preset companies yet.{" "}
+                        <Link href="/dashboard/companies" className="font-medium text-[#5A378F] hover:underline">
+                          Add one now
+                        </Link>
+                      </p>
+                    )}
+                  </div>
+
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <Field label="Company Name">
                       <Input value={formData.from?.name} onChange={(e) => updateFrom("name", e.target.value)} className={inputClass} />
@@ -963,9 +789,10 @@ export default function CreateServiceInvoicePage() {
                     </Field>
                   </div>
                 </div>
+
               </TabsContent>
 
-              {/* CLIENT TAB */}
+              {/* ====================== CLIENT TAB ====================== */}
               <TabsContent value="client" className="space-y-4 pt-4">
                 <div>
                   <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em] text-slate-400">
@@ -1018,189 +845,323 @@ export default function CreateServiceInvoicePage() {
                 </div>
               </TabsContent>
 
-              {/* SERVICES TAB */}
-              <TabsContent value="services" className="space-y-4 pt-4">
+              {/* ====================== SERVICES TAB ====================== */}
+              <TabsContent value="items" className="space-y-4 pt-4">
                 <div className="flex items-center justify-between">
                   <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em] text-slate-400">
-                    <Wrench className="h-3.5 w-3.5" />
-                    Service Groups
+                    <Package className="h-3.5 w-3.5" />
+                    Service Groups & Items
                   </h3>
-                  <span className="text-xs text-slate-400">
-                    {(formData.services || []).length} service
-                    {(formData.services || []).length !== 1 ? "s" : ""}
-                  </span>
+                  <Button
+                    size="sm"
+                    onClick={addServiceGroup}
+                    className="gap-1.5 rounded-lg bg-[#5A378F] text-white shadow-[0_2px_8px_-2px_rgba(90,55,143,0.5)] hover:bg-[#4a2d7a]"
+                  >
+                    <Plus className="h-3.5 w-3.5" /> Add Service Group
+                  </Button>
                 </div>
 
                 <div className="space-y-4">
-                  {(formData.services || []).map((svc, si) => (
-                    <ServiceCard
-                      key={si}
-                      service={svc}
-                      serviceIdx={si}
-                      onUpdateName={(v) => updateServiceName(si, v)}
-                      onAddItem={() => addItem(si)}
-                      onUpdateItem={(ii, f, v) => updateItem(si, ii, f, v)}
-                      onRemoveItem={(ii) => removeItem(si, ii)}
-                      onAddSubItem={(ii) => addSubItem(si, ii)}
-                      onUpdateSubItem={(ii, subI, v) => updateSubItem(si, ii, subI, v)}
-                      onRemoveSubItem={(ii, subI) => removeSubItem(si, ii, subI)}
-                      onRemoveService={() => removeService(si)}
-                    />
-                  ))}
+                  {(formData.services || []).map((group, gi) => (
+                    <div key={gi} className="rounded-xl border border-slate-200 bg-slate-50/40 p-4">
+                      {/* Group header */}
+                      <div className="mb-3 flex items-center gap-2">
+                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-[#51B9A9]/15 text-xs font-semibold text-[#0E8A7C]">
+                          {gi + 1}
+                        </span>
+                        <Input
+                          value={group.serviceName}
+                          onChange={(e) => updateServiceGroupName(gi, e.target.value)}
+                          placeholder="Service group name (e.g. Design Services)"
+                          className={cn(inputClass, "flex-1 font-medium")}
+                        />
+                        <button
+                          onClick={() => removeServiceGroup(gi)}
+                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[#EA2B7B] transition-colors hover:bg-[#FBEAF0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#EA2B7B]/30"
+                          aria-label="Remove service group"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
 
-                  <button
-                    type="button"
-                    onClick={addService}
-                    className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-[#5A378F]/30 bg-[#51B9A9]/5 text-sm font-semibold text-[#0E8A7C] transition-all hover:border-[#51B9A9]/50 hover:bg-[#51B9A9]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#51B9A9]/30"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Add Service
-                  </button>
+                      {/* Items in this group */}
+                      <div className="space-y-3">
+                        {group.items.map((item, ii) => (
+                          <div key={ii} className="rounded-lg border border-slate-200 bg-white p-3">
+                            <div className="flex flex-wrap items-end gap-3">
+                              <div className="min-w-[180px] flex-1">
+                                <Field label="Description">
+                                  <Input
+                                    value={item.name}
+                                    onChange={(e) => updateServiceItem(gi, ii, "name", e.target.value)}
+                                    className={inputClass}
+                                    placeholder="Item name or service"
+                                  />
+                                </Field>
+                              </div>
+                              <div className="w-20">
+                                <Field label="Qty">
+                                  <Input
+                                    type="number"
+                                    value={item.quantity}
+                                    onChange={(e) => updateServiceItem(gi, ii, "quantity", Number(e.target.value))}
+                                    className={inputClass}
+                                  />
+                                </Field>
+                              </div>
+                              <div className="w-28">
+                                <Field label="Price">
+                                  <Input
+                                    type="number"
+                                    step="0.01"
+                                    value={item.unitPrice}
+                                    onChange={(e) => updateServiceItem(gi, ii, "unitPrice", Number(e.target.value))}
+                                    className={inputClass}
+                                  />
+                                </Field>
+                              </div>
+                              <button
+                                onClick={() => removeServiceItem(gi, ii)}
+                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[#EA2B7B] transition-colors hover:bg-[#FBEAF0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#EA2B7B]/30"
+                                aria-label="Remove item"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+
+                            {/* Subtotal */}
+                            <div className="mt-2 pl-1 text-right text-xs text-slate-500">
+                              Subtotal:{" "}
+                              <span className="font-semibold text-slate-700">
+                                ৳{(item.quantity * item.unitPrice).toLocaleString("en-BD")}
+                              </span>
+                            </div>
+
+                            {/* Note */}
+                            <div className="mt-3">
+                              <Field label="Note (optional)">
+                                <Input
+                                  placeholder="Add a note for this item…"
+                                  value={item.note || ""}
+                                  onChange={(e) => updateServiceItem(gi, ii, "note", e.target.value)}
+                                  className={inputClass}
+                                />
+                              </Field>
+                            </div>
+
+                            {/* Sub-items */}
+                            <div className="mt-3 border-t border-slate-200 pt-3">
+                              <div className="mb-2 flex items-center justify-between">
+                                <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">
+                                  Sub-items
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => addSubItem(gi, ii)}
+                                  className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-[#5A378F] transition-colors hover:bg-[#EEEDFE]"
+                                >
+                                  <Plus className="h-3 w-3" /> Add sub-item
+                                </button>
+                              </div>
+                              <div className="space-y-2">
+                                {(item.subItems || []).map((sub, si) => (
+                                  <div key={si} className="flex items-center gap-2">
+                                    <span className="text-slate-300">—</span>
+                                    <Input
+                                      className={cn("h-8 flex-1 text-sm", inputClass)}
+                                      placeholder="Sub-item description…"
+                                      value={sub}
+                                      onChange={(e) => updateSubItem(gi, ii, si, e.target.value)}
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => removeSubItem(gi, ii, si)}
+                                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[#EA2B7B] transition-colors hover:bg-[#FBEAF0]"
+                                      aria-label="Remove sub-item"
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => addServiceItem(gi)}
+                        className="mt-3 flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-[#5A378F]/40 bg-white text-xs font-semibold text-[#5A378F] transition-all hover:border-[#5A378F]/60 hover:bg-[#EEEDFE]/40"
+                      >
+                        <Plus className="h-3.5 w-3.5" /> Add Item to this Group
+                      </button>
+                    </div>
+                  ))}
                 </div>
 
-                {/* Grand totals summary */}
-                <div className="overflow-hidden rounded-2xl border border-slate-200/70 bg-slate-50/60">
-                  <div className="border-b border-slate-200 bg-white px-4 py-2.5">
-                    <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em] text-slate-400">
-                      <CreditCard className="h-3.5 w-3.5" />
-                      Adjustments &amp; Total
-                    </h3>
+                {/* Adjustments */}
+                <div className="border-t border-slate-100 pt-4">
+                  <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em] text-slate-400">
+                    <CreditCard className="h-3.5 w-3.5" />
+                    Adjustments
+                  </h3>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    <Field label="Discount (৳)">
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={formData.discount}
+                        onChange={(e) => setFormData({ ...formData, discount: Number(e.target.value) })}
+                        className={inputClass}
+                      />
+                    </Field>
+                    <Field label="VAT (%)">
+                      <Input
+                        type="number"
+                        step="0.1"
+                        value={formData.vat}
+                        onChange={(e) => setFormData({ ...formData, vat: Number(e.target.value) })}
+                        className={inputClass}
+                      />
+                    </Field>
+                    <Field label="Advance Paid (৳)">
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={formData.advancePaid}
+                        onChange={(e) => setFormData({ ...formData, advancePaid: Number(e.target.value) })}
+                        className={inputClass}
+                      />
+                    </Field>
                   </div>
-                  <div className="space-y-3 p-4">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-slate-500">Grand Subtotal</span>
-                      <span className="font-semibold text-slate-700">${grandSubtotal.toFixed(2)}</span>
-                    </div>
+                </div>
 
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                      <Field label="Discount ($)">
-                        <Input
-                          type="number"
-                          step="0.01"
-                          value={formData.discount}
-                          onChange={(e) => setFormData({ ...formData, discount: Number(e.target.value) })}
-                          className={cn("h-8 text-right", inputClass)}
-                        />
-                      </Field>
-                      <Field label="VAT (%)">
-                        <Input
-                          type="number"
-                          step="0.1"
-                          value={formData.vat}
-                          onChange={(e) => setFormData({ ...formData, vat: Number(e.target.value) })}
-                          className={cn("h-8 text-right", inputClass)}
-                        />
-                      </Field>
-                      <Field label="Advance Paid ($)">
-                        <Input
-                          type="number"
-                          step="0.01"
-                          value={formData.advancePaid}
-                          onChange={(e) => setFormData({ ...formData, advancePaid: Number(e.target.value) })}
-                          className={cn("h-8 text-right", inputClass)}
-                        />
-                      </Field>
+                {/* Total summary */}
+                <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-500">Subtotal</span>
+                    <span className="font-semibold text-slate-700">৳{subtotal.toLocaleString("en-BD")}</span>
+                  </div>
+                  {formData.discount ? (
+                    <div className="mt-1.5 flex items-center justify-between text-sm">
+                      <span className="text-slate-500">Discount</span>
+                      <span className="font-semibold text-[#72243E]">−৳{(formData.discount || 0).toLocaleString("en-BD")}</span>
                     </div>
-
-                    {formData.discount ? (
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-slate-500">Discount</span>
-                        <span className="font-semibold text-[#72243E]">−${(formData.discount || 0).toFixed(2)}</span>
-                      </div>
-                    ) : null}
-                    {formData.vat ? (
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-slate-500">VAT ({formData.vat}%)</span>
-                        <span className="font-semibold text-slate-700">
-                          +${((grandSubtotal - (formData.discount || 0)) * (formData.vat / 100)).toFixed(2)}
-                        </span>
-                      </div>
-                    ) : null}
-                    {formData.advancePaid ? (
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-slate-500">Advance Paid</span>
-                        <span className="font-semibold text-[#0E8A7C]">−${(formData.advancePaid || 0).toFixed(2)}</span>
-                      </div>
-                    ) : null}
-
-                    <div className="flex items-center justify-between border-t border-slate-200 pt-3">
-                      <span className="text-sm font-semibold text-slate-900">Total</span>
-                      <span className="text-lg font-bold text-[#0E8A7C]">${totalAmount.toFixed(2)}</span>
+                  ) : null}
+                  {formData.vat ? (
+                    <div className="mt-1.5 flex items-center justify-between text-sm">
+                      <span className="text-slate-500">VAT ({formData.vat}%)</span>
+                      <span className="font-semibold text-slate-700">
+                        +৳{((subtotal - (formData.discount || 0)) * (formData.vat / 100)).toLocaleString("en-BD", { maximumFractionDigits: 0 })}
+                      </span>
                     </div>
+                  ) : null}
+                  {formData.advancePaid ? (
+                    <div className="mt-1.5 flex items-center justify-between text-sm">
+                      <span className="text-slate-500">Advance Paid</span>
+                      <span className="font-semibold text-[#0E8A7C]">−৳{(formData.advancePaid || 0).toLocaleString("en-BD")}</span>
+                    </div>
+                  ) : null}
+                  <div className="mt-3 flex items-center justify-between border-t border-slate-200 pt-3">
+                    <span className="text-sm font-semibold text-slate-900">Total</span>
+                    <span className="text-lg font-bold text-[#0E8A7C]">
+                      ৳{totalAmount.toLocaleString("en-BD", { maximumFractionDigits: 0 })}
+                    </span>
                   </div>
                 </div>
               </TabsContent>
 
-              {/* PAYMENT TAB */}
+              {/* ====================== PAYMENT TAB ====================== */}
               <TabsContent value="payment" className="space-y-4 pt-4">
-                <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em] text-slate-400">
-                  <CreditCard className="h-3.5 w-3.5" />
-                  Payment Information
-                </h3>
+                {/* ============ Load from Preset Bank Account ============ */}
+                <div>
+                  <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em] text-slate-400">
+                    <Landmark className="h-3.5 w-3.5" />
+                    Load from Preset Bank Account
+                  </h3>
 
-                {/* Note (full width, top) */}
-                <div className="mb-2">
-                  <Field label="Note" hint="Shown on the invoice in the payment block">
-                    <Textarea
-                      value={formData.paymentInfo?.note || ""}
-                      onChange={(e) => updatePayment("note", e.target.value)}
-                      placeholder="e.g. Please make payment within 14 days of invoice date."
-                      rows={2}
-                      className={cn(inputClass, "resize-none")}
-                    />
-                  </Field>
+                  <BankAccountSearch accounts={presetBankAccounts} onSelect={applyPresetBankAccount} />
+                  {presetBankAccounts.length === 0 && (
+                    <p className="mt-2 text-xs text-slate-400">
+                      No preset bank accounts yet.{" "}
+                      <Link href="/dashboard/bank-accounts" className="font-medium text-[#5A378F] hover:underline">
+                        Add one now
+                      </Link>
+                    </p>
+                  )}
                 </div>
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <Field label="Currency">
-                    <Input
-                      value={formData.paymentInfo?.currency}
-                      onChange={(e) => updatePayment("currency", e.target.value)}
-                      className={inputClass}
-                    />
-                  </Field>
-                  <Field label="Bank Name">
-                    <Input
-                      value={formData.paymentInfo?.bankName}
-                      onChange={(e) => updatePayment("bankName", e.target.value)}
-                      className={inputClass}
-                    />
-                  </Field>
-                  <Field label="Account Name">
-                    <Input
-                      value={formData.paymentInfo?.accountName}
-                      onChange={(e) => updatePayment("accountName", e.target.value)}
-                      className={inputClass}
-                    />
-                  </Field>
-                  <Field label="Account Number">
-                    <Input
-                      value={formData.paymentInfo?.accountNumber}
-                      onChange={(e) => updatePayment("accountNumber", e.target.value)}
-                      className={inputClass}
-                    />
-                  </Field>
-                  <Field label="Branch">
-                    <Input
-                      value={formData.paymentInfo?.branch}
-                      onChange={(e) => updatePayment("branch", e.target.value)}
-                      className={inputClass}
-                    />
-                  </Field>
-                  <Field label="SWIFT / BIC">
-                    <Input
-                      value={formData.paymentInfo?.swift}
-                      onChange={(e) => updatePayment("swift", e.target.value)}
-                      className={inputClass}
-                    />
-                  </Field>
-                  <Field label="Routing Number">
-                    <Input
-                      value={formData.paymentInfo?.routingNumber ?? ""}
-                      onChange={(e) => updatePayment("routingNumber", e.target.value)}
-                      className={inputClass}
-                    />
-                  </Field>
+                <div className="border-t border-slate-100 pt-4">
+                  <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em] text-slate-400">
+                    <CreditCard className="h-3.5 w-3.5" />
+                    Payment Information — or fill in manually
+                  </h3>
+
+                  {/* Note (full width) */}
+                  <div className="mb-2">
+                    <Field label="Note" hint="Shown on the invoice in the payment block">
+                      <Textarea
+                        value={formData.paymentInfo?.note || ""}
+                        onChange={(e) => updatePayment("note", e.target.value)}
+                        placeholder="e.g. Please make payment within 14 days of invoice date."
+                        rows={2}
+                        className={cn(inputClass, "resize-none")}
+                      />
+                    </Field>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <Field label="Currency">
+                      <Input
+                        value={formData.paymentInfo?.currency}
+                        onChange={(e) => updatePayment("currency", e.target.value)}
+                        className={inputClass}
+                      />
+                    </Field>
+                    <Field label="Bank Name">
+                      <Input
+                        value={formData.paymentInfo?.bankName}
+                        onChange={(e) => updatePayment("bankName", e.target.value)}
+                        className={inputClass}
+                      />
+                    </Field>
+                    <Field label="Account Name">
+                      <Input
+                        value={formData.paymentInfo?.accountName}
+                        onChange={(e) => updatePayment("accountName", e.target.value)}
+                        className={inputClass}
+                      />
+                    </Field>
+                    <Field label="Account Number">
+                      <Input
+                        value={formData.paymentInfo?.accountNumber}
+                        onChange={(e) => updatePayment("accountNumber", e.target.value)}
+                        className={inputClass}
+                      />
+                    </Field>
+                    <Field label="Branch">
+                      <Input
+                        value={formData.paymentInfo?.branch}
+                        onChange={(e) => updatePayment("branch", e.target.value)}
+                        className={inputClass}
+                      />
+                    </Field>
+                    <Field label="SWIFT / BIC">
+                      <Input
+                        value={formData.paymentInfo?.swift}
+                        onChange={(e) => updatePayment("swift", e.target.value)}
+                        className={inputClass}
+                      />
+                    </Field>
+                    <Field label="Routing Number">
+                      <Input
+                        value={formData.paymentInfo?.routingNumber ?? ""}
+                        onChange={(e) => updatePayment("routingNumber", e.target.value)}
+                        className={inputClass}
+                      />
+                    </Field>
+                  </div>
                 </div>
               </TabsContent>
             </Tabs>
@@ -1222,6 +1183,14 @@ export default function CreateServiceInvoicePage() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Hidden full-size invoice used only for PDF capture — no parent CSS transform */}
+      <div
+        aria-hidden="true"
+        style={{ position: "fixed", left: "-9999px", top: 0, opacity: 0, pointerEvents: "none" }}
+      >
+        <ServiceInvoicePreview data={formData} ref={pdfRef} />
       </div>
     </>
   );
