@@ -20,6 +20,7 @@ import { jsPDF } from "jspdf";
 import { Spinner } from "@/components/ui/spinner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { useDashboardTitle } from "@/app/dashboard/layout";
 
 /* ------------------------------------------------------------------ */
 /*  Field wrapper                                                      */
@@ -265,6 +266,7 @@ export default function EditServiceInvoicePage() {
   const { id } = useParams();
   const router = useRouter();
   const printRef = useRef<HTMLDivElement>(null);
+  const setPageTitle = useDashboardTitle();
 
   const [pageLoading, setPageLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -288,7 +290,7 @@ export default function EditServiceInvoicePage() {
     total: 0,
   });
 
-  /* ---------- Load existing invoice (unchanged logic) ---------- */
+  /* ---------- Load existing invoice ---------- */
   useEffect(() => {
     fetch(`/api/invoices/${id}`)
       .then((r) => r.json())
@@ -302,13 +304,17 @@ export default function EditServiceInvoicePage() {
               ? data.services
               : [defaultService()],
         });
+        
+        if (data?.invoiceNumber) {
+          setPageTitle(`Service Invoices / ${data.invoiceNumber}`);
+        }
         setPageLoading(false);
       })
       .catch(() => {
         toast.error("Failed to load invoice");
         router.push("/dashboard/service-invoices");
       });
-  }, [id]);
+  }, [id, setPageTitle]);
 
   /* ---------- Computed totals (unchanged) ---------- */
   const grandSubtotal = useMemo(

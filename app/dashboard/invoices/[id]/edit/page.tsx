@@ -20,6 +20,7 @@ import { jsPDF } from "jspdf";
 import { Spinner } from "@/components/ui/spinner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { useDashboardTitle } from "@/app/dashboard/layout";
 
 /* ------------------------------------------------------------------ */
 /*  Field wrapper                                                      */
@@ -56,6 +57,7 @@ export default function EditInvoicePage() {
   const { id } = useParams();
   const router = useRouter();
   const printRef = useRef<HTMLDivElement>(null);
+  const setPageTitle = useDashboardTitle();
 
   const [pageLoading, setPageLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -89,13 +91,17 @@ export default function EditInvoicePage() {
           date: new Date(data.date),
           dueDate: new Date(data.dueDate),
         });
+
+        if (data?.invoiceNumber) {
+          setPageTitle(`Invoices / ${data.invoiceNumber}`);
+        }
         setPageLoading(false);
       })
       .catch(() => {
         toast.error("Failed to load invoice");
         router.push("/dashboard/invoices");
       });
-  }, [id]);
+  }, [id, setPageTitle]);
 
   /* ---------- Live total (unchanged logic) ---------- */
   const subtotal = useMemo(

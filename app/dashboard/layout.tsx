@@ -25,7 +25,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
-import { useState, useEffect } from "react";
+import { useState, useEffect, createContext, useCallback, useContext } from "react";
 
 /* ------------------------------------------------------------------ */
 /*  Navigation config — unchanged items, grouped for clearer hierarchy */
@@ -90,6 +90,17 @@ function getActiveTitle(pathname: string): string {
     }
   }
   return match.name;
+}
+
+type DashboardTitleContextValue = {
+  setPageTitle: (title: string | null) => void;
+};
+
+const DashboardTitleContext = createContext<DashboardTitleContextValue | null>(null);
+
+export function useDashboardTitle() {
+  const ctx = useContext(DashboardTitleContext);
+  return ctx?.setPageTitle ?? (() => { });
 }
 
 /* ------------------------------------------------------------------ */
@@ -377,9 +388,11 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Close mobile sheet on route change
+  const [overrideTitle, setOverrideTitle] = useState<string | null>(null);
+
   useEffect(() => {
     setSidebarOpen(false);
+    setOverrideTitle(null);
   }, [pathname]);
 
   // Lock body scroll when sheet open
@@ -394,66 +407,72 @@ export default function DashboardLayout({
     };
   }, [sidebarOpen]);
 
-  const title = getActiveTitle(pathname);
+  const setPageTitle = useCallback((t: string | null) => {
+    setOverrideTitle(t);
+  }, []);
+
+  const title = overrideTitle ?? getActiveTitle(pathname);
 
   return (
-    <div className="flex h-screen flex-col bg-[#F4F5F7] font-sans text-slate-900 antialiased md:flex-row">
-      {/* Mobile sheet */}
-      <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-        <SheetContent
-          side="left"
-          className="w-[280px] border-none p-0"
-          aria-label="Navigation"
-        >
-          {/* Visually-hidden title for a11y (Sheet requires it) */}
-          <SheetTitle className="sr-only">Main navigation</SheetTitle>
-          {/* Close button overlay for mobile */}
-          <button
-            onClick={() => setSidebarOpen(false)}
-            className="absolute right-3 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-md text-white/60 hover:bg-white/10 hover:text-white md:hidden"
-            aria-label="Close navigation"
+    <DashboardTitleContext.Provider value={{ setPageTitle }}>
+      <div className="flex h-screen flex-col bg-[#F4F5F7] font-sans text-slate-900 antialiased md:flex-row">
+        {/* Mobile sheet */}
+        <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+          <SheetContent
+            side="left"
+            className="w-[280px] border-none p-0"
+            aria-label="Navigation"
           >
-            <X className="h-4 w-4" />
-          </button>
-          <SidebarContent pathname={pathname} setSidebarOpen={setSidebarOpen} />
-        </SheetContent>
-      </Sheet>
+            {/* Visually-hidden title for a11y (Sheet requires it) */}
+            <SheetTitle className="sr-only">Main navigation</SheetTitle>
+            {/* Close button overlay for mobile */}
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="absolute right-3 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-md text-white/60 hover:bg-white/10 hover:text-white md:hidden"
+              aria-label="Close navigation"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <SidebarContent pathname={pathname} setSidebarOpen={setSidebarOpen} />
+          </SheetContent>
+        </Sheet>
 
-      {/* Desktop sidebar */}
-      <aside className="hidden w-[260px] shrink-0 md:block">
-        <div className="sticky top-0 h-screen">
-          <SidebarContent pathname={pathname} setSidebarOpen={setSidebarOpen} />
-        </div>
-      </aside>
-
-      {/* Main column */}
-      <div className="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
-        <TopBar
-          setSidebarOpen={setSidebarOpen}
-          title={title}
-          session={session}
-          status={status}
-        />
-
-        {/* Page content */}
-        <main className="flex-1 overflow-y-auto">
-          <div className="mx-auto w-full max-w-[1400px] px-4 py-6 md:px-8 md:py-8">
-            {children}
+        {/* Desktop sidebar */}
+        <aside className="hidden w-[260px] shrink-0 md:block">
+          <div className="sticky top-0 h-screen">
+            <SidebarContent pathname={pathname} setSidebarOpen={setSidebarOpen} />
           </div>
-        </main>
-      </div>
+        </aside>
 
-      {/* Floating action button — new invoice (kept) */}
-      <Link
-        href="/dashboard/invoices/create"
-        className="group fixed bottom-6 right-6 z-40 hidden items-center gap-2 rounded-full bg-[#5A378F] py-3 pl-3 pr-1 text-white shadow-[0_8px_24px_-6px_rgba(90,55,143,0.6)] transition-all duration-200 hover:bg-[#4a2d7a] hover:pr-5 hover:shadow-[0_10px_30px_-6px_rgba(90,55,143,0.7)] active:scale-95 md:inline-flex"
-        aria-label="Create new invoice"
-      >
-        <Plus className="h-5 w-5 transition-transform group-hover:rotate-90" aria-hidden="true" />
-        <span className="max-w-0 overflow-hidden whitespace-nowrap text-sm font-semibold opacity-0 transition-all duration-200 group-hover:max-w-[120px] group-hover:opacity-100">
-          New Invoice
-        </span>
-      </Link>
-    </div>
+        {/* Main column */}
+        <div className="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
+          <TopBar
+            setSidebarOpen={setSidebarOpen}
+            title={title}
+            session={session}
+            status={status}
+          />
+
+          {/* Page content */}
+          <main className="flex-1 overflow-y-auto">
+            <div className="mx-auto w-full max-w-[1400px] px-4 py-6 md:px-8 md:py-8">
+              {children}
+            </div>
+          </main>
+        </div>
+
+        {/* Floating action button — new invoice (kept) */}
+        <Link
+          href="/dashboard/invoices/create"
+          className="group fixed bottom-6 right-6 z-40 hidden items-center gap-2 rounded-full bg-[#5A378F] py-3 pl-3 pr-1 text-white shadow-[0_8px_24px_-6px_rgba(90,55,143,0.6)] transition-all duration-200 hover:bg-[#4a2d7a] hover:pr-5 hover:shadow-[0_10px_30px_-6px_rgba(90,55,143,0.7)] active:scale-95 md:inline-flex"
+          aria-label="Create new invoice"
+        >
+          <Plus className="h-5 w-5 transition-transform group-hover:rotate-90" aria-hidden="true" />
+          <span className="max-w-0 overflow-hidden whitespace-nowrap text-sm font-semibold opacity-0 transition-all duration-200 group-hover:max-w-[120px] group-hover:opacity-100">
+            New Invoice
+          </span>
+        </Link>
+      </div>
+    </DashboardTitleContext.Provider>
   );
 }

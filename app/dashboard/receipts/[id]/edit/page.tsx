@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import { CompanyData } from "@/types/company";
 import { CompanySearch } from "@/components/CompanySearch";
 import Link from "next/link";
+import { useDashboardTitle } from "@/app/dashboard/layout";
 
 /* ------------------------------------------------------------------ */
 /*  Field wrapper                                                      */
@@ -304,6 +305,7 @@ const defaultReceiptInfo = (): ReceiptInfo => ({
 export default function EditReceiptPage() {
   const { id } = useParams();
   const router = useRouter();
+  const setPageTitle = useDashboardTitle();
   const [pageLoading, setPageLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [downloading, setDownloading] = useState(false);
@@ -342,7 +344,7 @@ export default function EditReceiptPage() {
       .catch(() => { });
   }, []);
 
-  /* ---------- Load existing receipt (unchanged logic) ---------- */
+  /* ---------- Load existing receipt ---------- */
   useEffect(() => {
     fetch(`/api/invoices/${id}`)
       .then((r) => r.json())
@@ -370,13 +372,16 @@ export default function EditReceiptPage() {
             },
           },
         });
+        if (data?.invoiceNumber) {
+          setPageTitle(`Receipts / ${data.invoiceNumber}`);
+        }
         setPageLoading(false);
       })
       .catch(() => {
         toast.error("Failed to load receipt");
         router.push("/dashboard/receipts");
       });
-  }, [id]);
+  }, [id, setPageTitle]);
 
   /* ---------- Client helpers (unchanged) ---------- */
   const applyPresetClient = (client: ClientData) => {
