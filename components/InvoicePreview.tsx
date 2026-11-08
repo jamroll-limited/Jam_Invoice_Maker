@@ -142,7 +142,7 @@ function HeaderSection({ logoUrl, from, to }: {
   to: { name: string; email: string; phone: string; address: string };
 }) {
   return (
-    <header style={{ display: "flex", justifyContent: "space-between", marginBottom: "14px" }}>
+    <header style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
       {/* Left: Logo only */}
       <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
         {logoUrl ? (
@@ -208,7 +208,7 @@ function TitleSection({ name, invoiceNumber }: { name: string; invoiceNumber: st
         fontSize: FONT_SIZES.title,
         fontWeight: "bold",
         textTransform: "uppercase",
-        marginBottom: "14px",
+        marginBottom: "8px",
       }}
     >
       <h1 style={{ margin: 0, fontSize: FONT_SIZES.title, fontWeight: "bold" }}>{name}</h1>
@@ -226,7 +226,7 @@ function DescriptionSection({ description }: { description?: string }) {
   return (
     <div
       style={{
-        marginBottom: "14px",
+        marginBottom: "8px",
         padding: "8px 12px",
         background: COLORS.logoBg,
         borderRadius: "2px",
@@ -307,7 +307,7 @@ function ItemsTable({
         width: "100%",
         borderTop: `1px solid ${COLORS.borderDarkest}`,
         paddingTop: "8px",
-        marginTop: "14px",
+        marginTop: "8px",
       }}
     >
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -543,7 +543,7 @@ function PaymentInfoBlock({
             <>
               <h3
                 style={{
-                  fontSize: FONT_SIZES.md,
+                  fontSize: FONT_SIZES.lg,
                   fontWeight: "bold",
                   margin: 0,
                   marginBottom: "4px",

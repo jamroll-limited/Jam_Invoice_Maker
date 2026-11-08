@@ -516,7 +516,7 @@ export default function CreateReceiptPage() {
               <span className="text-slate-600">New</span>
             </nav>
             <h1 className="text-2xl font-semibold tracking-tight text-slate-900 md:text-3xl">
-              New Receipt
+              Create Receipt
             </h1>
             <p className="mt-1 text-sm text-slate-500">Fill in the details below — preview updates live.</p>
           </div>
@@ -1064,16 +1064,6 @@ export default function CreateReceiptPage() {
               <Eye className="h-4 w-4 text-slate-400" aria-hidden="true" />
               <h2 className="text-sm font-semibold text-slate-700">Live Preview</h2>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleDownloadPDF}
-              disabled={downloading}
-              className="gap-1.5 rounded-lg border-slate-200 text-slate-700 hover:bg-slate-50"
-            >
-              {downloading ? <Spinner className="h-3.5 w-3.5" /> : <Download className="h-3.5 w-3.5" />}
-              {downloading ? "Generating…" : "Download PDF"}
-            </Button>
           </div>
 
           <div className="flex w-full justify-center overflow-x-auto rounded-2xl border border-slate-200/70 bg-slate-100/70 p-4">

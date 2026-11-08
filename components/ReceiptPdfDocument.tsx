@@ -46,75 +46,287 @@ const jamrollLogoUri = `data:image/png;base64,${readFileSync(path.join(publicPat
 const PURPLE = "#5A378F";
 
 const s = StyleSheet.create({
-  page: { width: 612, minHeight: 842, padding: 30, backgroundColor: "#fff", fontFamily: "HelveticaNowDisplay", fontSize: 11 },
-  content: { flexGrow: 1 },
+  page: {
+    width: 612,
+    minHeight: 842,
+    padding: 24,
+    paddingBottom: 100,
+    backgroundColor: "#fff",
+    fontFamily: "HelveticaNowDisplay",
+    fontSize: 10,
+  },
+  content: {
+    flexGrow: 1,
+  },
 
   // header
-  headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 },
-  logo: { width: 72, height: 72, objectFit: "contain" },
-  logoBox: { width: 72, height: 72, backgroundColor: "#f3f4f6", alignItems: "center", justifyContent: "center", borderRadius: 4 },
-  logoText: { fontSize: 9, color: "#9ca3af" },
-  companyBlock: { alignItems: "flex-end" },
-  companyName: { fontWeight: 700, fontSize: 12, color: PURPLE },
-  companyInfo: { fontSize: 10, color: "#374151", textAlign: "right" },
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 8,
+  },
+  logo: {
+    width: 68,
+    height: 68,
+    objectFit: "contain",
+  },
+  logoBox: {
+    width: 68,
+    height: 68,
+    backgroundColor: "#f3f4f6",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 4,
+  },
+  logoText: {
+    fontSize: 8,
+    color: "#9ca3af",
+  },
+  companyBlock: {
+    alignItems: "flex-end",
+  },
+  companyName: {
+    fontWeight: 700,
+    fontSize: 11,
+    color: PURPLE,
+  },
+  companyInfo: {
+    fontSize: 9,
+    color: "#374151",
+    textAlign: "right",
+  },
 
-  descriptionBox: { marginBottom: 8, padding: "6 10", backgroundColor: "#f3f4f6", borderRadius: 2 },
-  descriptionText: { fontSize: 10, color: "#374151", lineHeight: 1.4 },
+  descriptionBox: {
+    marginBottom: 7,
+    padding: "5 9",
+    backgroundColor: "#f3f4f6",
+    borderRadius: 2,
+  },
+  descriptionText: {
+    fontSize: 9,
+    color: "#374151",
+    lineHeight: 1.3,
+  },
 
-  noteBox: { marginTop: 12, padding: "8 10", backgroundColor: "#EEEDFE", borderLeftWidth: 3, borderLeftColor: PURPLE, borderRadius: 2 },
-  noteLabel: { fontSize: 10, fontWeight: 700, color: PURPLE, marginBottom: 2 },
-  noteText: { fontSize: 10, color: "#374151", lineHeight: 1.4 },
+  noteBox: {
+    marginTop: 10,
+    padding: "7 9",
+    backgroundColor: "#EEEDFE",
+    borderLeftWidth: 3,
+    borderLeftColor: PURPLE,
+    borderRadius: 2,
+  },
+  noteLabel: {
+    fontSize: 9,
+    fontWeight: 700,
+    color: PURPLE,
+    marginBottom: 2,
+  },
+  noteText: {
+    fontSize: 9,
+    color: "#374151",
+    lineHeight: 1.3,
+  },
 
-  // title — centred to match preview
-  titleText: { fontSize: 20, fontWeight: 700, letterSpacing: 2, textAlign: "center", color: "#1a1a1a", marginBottom: 8 },
-  hr: { borderTopWidth: 1, borderTopColor: "#1a1a1a", marginBottom: 8 },
-  hrLight: { borderTopWidth: 1, borderTopColor: "#9ca3af", marginBottom: 0 },
+  // title
+  titleText: {
+    fontSize: 18,
+    fontWeight: 700,
+    letterSpacing: 2,
+    textAlign: "center",
+    color: "#1a1a1a",
+    marginBottom: 6,
+  },
+  hr: {
+    borderTopWidth: 1,
+    borderTopColor: "#1a1a1a",
+    marginBottom: 6,
+  },
+  hrLight: {
+    borderTopWidth: 1,
+    borderTopColor: "#9ca3af",
+    marginBottom: 0,
+  },
 
   // bill to
-  billRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8, marginTop: 8 },
-  billLabel: { fontWeight: 700, fontSize: 11, color: PURPLE, marginBottom: 4 },
-  billName: { fontWeight: 700, fontSize: 12 },
-  billInfo: { fontSize: 10, color: "#374151" },
-  invRow: { flexDirection: "row", justifyContent: "flex-end", gap: 4, marginBottom: 4 },
-  invLabel: { fontWeight: 700, fontSize: 11, color: PURPLE },
-  invValue: { fontWeight: 700, fontSize: 11 },
+  billRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 7,
+    marginTop: 7,
+  },
+  billLabel: {
+    fontWeight: 700,
+    fontSize: 10,
+    color: PURPLE,
+    marginBottom: 3,
+  },
+  billName: {
+    fontWeight: 700,
+    fontSize: 11,
+  },
+  billInfo: {
+    fontSize: 9,
+    color: "#374151",
+  },
+  invRow: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 4,
+    marginBottom: 3,
+  },
+  invLabel: {
+    fontWeight: 700,
+    fontSize: 10,
+    color: PURPLE,
+  },
+  invValue: {
+    fontWeight: 700,
+    fontSize: 10,
+  },
 
   // table
-  thCell: { padding: "7 8", fontWeight: 700, fontSize: 10, backgroundColor: PURPLE, color: "#fff", borderWidth: 1, borderColor: PURPLE },
-  thRight: { textAlign: "center" },
-  tdCell: { padding: "6 8", fontSize: 11, borderWidth: 1, borderColor: "#e5e7eb" },
-  tdRight: { textAlign: "center" },
-  tdBold: { fontWeight: 700 },
-  tdGray: { backgroundColor: "#f9fafb" },
-  tableRow: { flexDirection: "row" },
+  thCell: {
+    padding: "6 7",
+    fontWeight: 700,
+    fontSize: 9,
+    backgroundColor: PURPLE,
+    color: "#fff",
+    borderWidth: 1,
+    borderColor: PURPLE,
+  },
+  thRight: {
+    textAlign: "center",
+  },
+  tdCell: {
+    padding: "5 7",
+    fontSize: 10,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  tdRight: {
+    textAlign: "center",
+  },
+  tdBold: {
+    fontWeight: 700,
+  },
+  tdGray: {
+    backgroundColor: "#f9fafb",
+  },
+  tableRow: {
+    flexDirection: "row",
+  },
 
   // words
-  wordsBox: { marginTop: 12, fontSize: 11, flexDirection: "row", flexWrap: "wrap" },
-  wordsLabel: { fontWeight: 700, color: PURPLE },
-  wordsText: { fontWeight: 700 },
+  wordsBox: {
+    marginTop: 10,
+    fontSize: 10,
+    flexDirection: "row",
+    flexWrap: "wrap",
+  },
+  wordsLabel: {
+    fontWeight: 700,
+    color: PURPLE,
+  },
+  wordsText: {
+    fontWeight: 700,
+  },
 
-  // payment received in — horizontal row matching preview
-  paySection: { marginTop: 14 },
-  sectionTitle: { fontWeight: 700, fontSize: 11, color: PURPLE, textDecoration: "underline", marginBottom: 8 },
-  pmInline: { flexDirection: "row", alignItems: "center", gap: 14, flexWrap: "wrap" },
-  pmItem: { flexDirection: "row", alignItems: "center", gap: 5 },
-  pmLabel: { fontWeight: 700, fontSize: 11, color: PURPLE },
-  cbChecked: { width: 15, height: 15, backgroundColor: PURPLE, borderRadius: 2, alignItems: "center", justifyContent: "center" },
-  // Checkmark drawn with border-strokes (L-shape rotated) — avoids missing font glyph
-  cbShape: { width: 7, height: 4, borderBottomWidth: 1.5, borderLeftWidth: 1.5, borderColor: "#fff", transform: "rotate(-45deg)", marginBottom: 2 },
-  cbDash: { color: "#9ca3af", fontSize: 12, fontWeight: 700, width: 15, textAlign: "center" },
+  // payment received in
+  paySection: {
+    marginTop: 11,
+  },
+  sectionTitle: {
+    fontWeight: 700,
+    fontSize: 10,
+    color: PURPLE,
+    textDecoration: "underline",
+    marginBottom: 6,
+  },
+  pmInline: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    flexWrap: "wrap",
+  },
+  pmItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  pmLabel: {
+    fontWeight: 700,
+    fontSize: 10,
+    color: PURPLE,
+  },
+  cbChecked: {
+    width: 14,
+    height: 14,
+    backgroundColor: PURPLE,
+    borderRadius: 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cbShape: {
+    width: 7,
+    height: 4,
+    borderBottomWidth: 1.5,
+    borderLeftWidth: 1.5,
+    borderColor: "#fff",
+    transform: "rotate(-45deg)",
+    marginBottom: 2,
+  },
+  cbDash: {
+    color: "#9ca3af",
+    fontSize: 11,
+    fontWeight: 700,
+    width: 14,
+    textAlign: "center",
+  },
 
-  divider: { borderTopWidth: 1, borderTopColor: "#9ca3af", marginVertical: 12 },
+  divider: {
+    borderTopWidth: 1,
+    borderTopColor: "#9ca3af",
+    marginVertical: 10,
+  },
 
   // received by
-  receivedTitle: { fontWeight: 700, fontSize: 11, color: PURPLE, textDecoration: "underline", marginBottom: 8 },
-  receivedText: { fontSize: 11, lineHeight: 1.7 },
-  receivedBold: { fontWeight: 700 },
+  receivedTitle: {
+    fontWeight: 700,
+    fontSize: 10,
+    color: PURPLE,
+    textDecoration: "underline",
+    marginBottom: 6,
+  },
+  receivedText: {
+    fontSize: 10,
+    lineHeight: 1.5,
+  },
+  receivedBold: {
+    fontWeight: 700,
+  },
 
   // footer
-  footer: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", borderTopWidth: 1, borderTopColor: "#e5e7eb", paddingTop: 8, marginTop: 16 },
-  footerText: { color: "#4b5563", fontSize: 10 },
-  footerLogo: { width: 130, height: 40, objectFit: "contain" },
+  footer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderTopWidth: 1,
+    borderTopColor: "#e5e7eb",
+    paddingTop: 6,
+    marginTop: 12,
+  },
+  footerText: {
+    color: "#4b5563",
+    fontSize: 9,
+  },
+  footerLogo: {
+    width: 120,
+    height: 38,
+    objectFit: "contain",
+  },
 });
 
 const defaultRI = (): ReceiptInfo => ({

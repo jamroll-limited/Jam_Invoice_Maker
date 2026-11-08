@@ -95,46 +95,43 @@ const jamrollLogoDataUri = `data:image/png;base64,${readFileSync(jamrollLogoPath
 const styles = StyleSheet.create({
   page: {
     width: 612,
-    padding: 30,
-    // Footer sits at bottom: 30 and is ~60pt tall (top ≈ 90pt from the
-    // page edge). Reserve extra room so content always stops with a clear
-    // gap above the footer and breaks onto the next page instead.
-    paddingBottom: 120,
+    padding: 24,
+    paddingBottom: 100,
     backgroundColor: "#ffffff",
     color: "#000000",
     fontFamily: "HelveticaNowDisplay",
-    fontSize: 12,
-  },  
+    fontSize: 11,
+  },
   content: {
     flexGrow: 1,
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 14,
+    marginBottom: 10,
   },
   logo: {
-    width: 80,
-    height: 80,
+    width: 72,
+    height: 72,
     objectFit: "contain",
   },
   logoPlaceholder: {
-    width: 80,
-    height: 80,
+    width: 72,
+    height: 72,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#f3f4f6",
   },
   placeholderText: {
-    fontSize: 10,
+    fontSize: 9,
     color: "#9ca3af",
   },
   clientBlock: {
     width: 150,
   },
   fromBlock: {
-    fontSize: 11,
-    marginBottom: 12,
+    fontSize: 10,
+    marginBottom: 9,
   },
   accentLabel: {
     color: "#5A378F",
@@ -145,30 +142,31 @@ const styles = StyleSheet.create({
   },
   titleRow: {
     flexDirection: "row",
-    marginBottom: 14,
+    marginBottom: 10,
   },
   title: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 700,
     textTransform: "uppercase",
     marginRight: 4,
   },
   descriptionBox: {
-    marginBottom: 14,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    marginBottom: 10,
+    paddingTop: 4,
+    paddingBottom: 6,
+    paddingHorizontal: 10,
     backgroundColor: "#f3f4f6",
     borderRadius: 2,
   },
   descriptionText: {
-    fontSize: 12,
+    fontSize: 11,
     color: "#374151",
-    lineHeight: 1.4,
+    lineHeight: 1.3,
   },
   datesRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 14,
+    marginBottom: 10,
   },
   dateItem: {
     flexDirection: "row",
@@ -180,13 +178,14 @@ const styles = StyleSheet.create({
   table: {
     borderTopWidth: 1,
     borderTopColor: "#7D7E81",
-    paddingTop: 8,
+    paddingTop: 6,
   },
   tableHeader: {
     flexDirection: "row",
     color: "#5A378F",
     fontWeight: 700,
-    paddingBottom: 6,
+    paddingBottom: 5,
+    fontSize: 10,
   },
   itemColumn: {
     width: "46%",
@@ -199,80 +198,80 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     borderTopWidth: 1,
     borderTopColor: "#e5e7eb",
-    paddingVertical: 7,
+    paddingVertical: 5,
   },
   itemName: {
     fontWeight: 600,
   },
   itemNote: {
-    fontSize: 10,
+    fontSize: 9,
     color: "#6b7280",
     fontStyle: "italic",
     marginTop: 2,
   },
   subItem: {
-    fontSize: 10,
+    fontSize: 9,
     color: "#4b5563",
     marginTop: 2,
   },
   emptyText: {
     color: "#9ca3af",
-    fontSize: 14,
+    fontSize: 12,
     textAlign: "center",
-    paddingVertical: 24,
+    paddingVertical: 20,
   },
   serviceHeader: {
     backgroundColor: "#5A378F",
     color: "#ffffff",
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: 700,
-    paddingVertical: 6,
-    paddingHorizontal: 8,
+    paddingVertical: 5,
+    paddingHorizontal: 7,
   },
   serviceSubtotalRow: {
     flexDirection: "row",
     backgroundColor: "#f5f3ff",
-    paddingVertical: 5,
-    paddingHorizontal: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 7,
   },
   serviceSubtotalLabel: {
     width: "82%",
     textAlign: "right",
     color: "#5A378F",
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: 700,
   },
   serviceSubtotalValue: {
     width: "18%",
     textAlign: "center",
     color: "#5A378F",
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: 700,
   },
   totals: {
-    marginTop: 8,
+    marginTop: 6,
   },
   totalRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    height: 32,
+    height: 28,
     borderTopWidth: 1,
     borderTopColor: "#B1B1B1",
   },
   totalLabel: {
     color: "#EA2B7B",
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 700,
   },
   totalValue: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 700,
   },
   paymentBox: {
-    marginTop: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 32,
+    marginTop: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 24,
     borderWidth: 1,
     borderColor: "#5A378F",
     backgroundColor: "#5A3691",
@@ -284,7 +283,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   paymentTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 700,
   },
   paymentDetails: {
@@ -292,29 +291,29 @@ const styles = StyleSheet.create({
   },
   paymentNoteColumn: {
     width: "58%",
-    paddingRight: 12,
+    paddingRight: 10,
   },
   paymentNoteTitle: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: 700,
     marginBottom: 4,
   },
   paymentNoteText: {
-    fontSize: 10,
-    lineHeight: 1.4,
+    fontSize: 9,
+    lineHeight: 1.3,
   },
   paymentDetailsWithNote: {
     width: "42%",
   },
   paymentDetailsTitle: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: 700,
-    marginBottom: 6,
+    marginBottom: 5,
   },
   paymentLine: {
     flexDirection: "row",
-    fontSize: 8,
-    lineHeight: 1.4,
+    fontSize: 7,
+    lineHeight: 1.3,
   },
   paymentLineLabel: {
     marginRight: 3,
@@ -324,22 +323,22 @@ const styles = StyleSheet.create({
   },
   footer: {
     position: "absolute",
-    bottom: 30,
-    left: 30,
-    right: 30,
+    bottom: 24,
+    left: 24,
+    right: 24,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     borderTopWidth: 1,
     borderTopColor: "#e5e7eb",
-    paddingTop: 8,
+    paddingTop: 6,
   },
   footerText: {
     color: "#4b5563",
   },
   footerLogo: {
-    width: 160,
-    height: 50,
+    width: 140,
+    height: 44,
     objectFit: "contain",
   },
 });
@@ -511,9 +510,7 @@ function ServiceTable({ services }: { services: ServiceGroup[] }) {
 }
 
 /**
- * Splits a service into unbreakable groups so page breaks only happen
- * between items: the heading always stays with the first item, and the
- * subtotal always stays with the last item (never orphaned or split).
+ * between items
  */
 function serviceRowGroups(service: ServiceGroup, serviceIndex: number) {
   const header = pdfElement(
@@ -596,13 +593,7 @@ function TotalsBlock({
     ),
   );
 
-  // Page-break rules (fill the page, but never split a section):
-  //  - The totals summary (Sub-Total … Grand Total) is one unbreakable group,
-  //    so it is never split across pages.
-  //  - The payment / notes box is its own unbreakable group.
-  //  - Each group flows independently: the totals sit right under the items
-  //    when they fit, and only the box moves to the next page if needed —
-  //    no large empty gap on the page.
+  // Page-break rules
   const totalsGroup = pdfElement(View, { wrap: false }, ...totalRows);
 
   if (!isQuotation) {
@@ -615,7 +606,6 @@ function TotalsBlock({
   }
 
   // Quotation notes can be long. Keep short notes in one piece; let very long
-  // notes flow onto the next page so nothing gets clipped.
   const notesLength = (notes?.text?.length ?? 0) + (notes?.points ?? []).join(" ").length;
   const notesAreShort = (notes?.points?.length ?? 0) <= 10 && notesLength <= 900;
 
@@ -651,8 +641,7 @@ function PaymentInfoBox({
     pdfElement(PaymentLine, { key: "rn", label: "Routing Number:", value: paymentInfo.routingNumber }),
   ];
 
-  // With a note: "Note:" + text on the left, "Payment Information:" heading
-  // above the account lines on the right (matches the on-screen preview).
+  // "Payment Information" 
   if (note) {
     return pdfElement(
       View,
