@@ -8,15 +8,17 @@ import { InvoicePreview } from "@/components/InvoicePreview";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useDashboardTitle } from "../../layout";
 
 export default function ViewQuotationPage() {
   const { id } = useParams();
   const router = useRouter();
+  const setPageTitle = useDashboardTitle();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
 
-  /* ---------- Data fetching (unchanged) ---------- */
+  /* ---------- Data fetching ---------- */
   useEffect(() => {
     fetch(`/api/invoices/${id}`)
       .then((res) => {
@@ -25,13 +27,16 @@ export default function ViewQuotationPage() {
       })
       .then((data) => {
         setData(data);
+        if (data?.invoiceNumber) {
+          setPageTitle(`Quotations / ${data.invoiceNumber}`);
+        }
         setLoading(false);
       })
       .catch(() => {
         toast.error("Quotation not found");
         setLoading(false);
       });
-  }, [id]);
+  }, [id, setPageTitle]);
 
   /* ---------- PDF download (unchanged logic) ---------- */
   const handleDownloadPDF = async () => {

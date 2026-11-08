@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { CompanyData } from "@/types/company";
 import { CompanySearch } from "@/components/CompanySearch";
 import Link from "next/link";
+import { useDashboardTitle } from "@/app/dashboard/layout";
 
 /* ------------------------------------------------------------------ */
 /*  Field wrapper                                                      */
@@ -286,6 +287,7 @@ function ClientSearch({
 export default function EditQuotationPage() {
   const { id } = useParams();
   const router = useRouter();
+  const setPageTitle = useDashboardTitle();
   const printRef = useRef<HTMLDivElement>(null);
   const pdfRef = useRef<HTMLDivElement>(null);
 
@@ -313,12 +315,12 @@ export default function EditQuotationPage() {
     total: 0,
   });
 
-  /* ---------- Load invoice + clients (unchanged logic) ---------- */
+  /* ---------- Load invoice + clients ---------- */
   useEffect(() => {
     Promise.all([
       fetch(`/api/invoices/${id}`).then((r) => r.json()),
       fetch("/api/clients").then((r) => r.json()),
-      fetch("/api/companies").then((r) => r.json()),     // ← NEW
+      fetch("/api/companies").then((r) => r.json()),
     ])
       .then(([inv, clients, companies]) => {
         setFormData({
@@ -329,13 +331,16 @@ export default function EditQuotationPage() {
         });
         if (Array.isArray(clients)) setPresetClients(clients);
         if (Array.isArray(companies)) setPresetCompanies(companies);
+        if (inv?.invoiceNumber) {
+          setPageTitle(`Quotations / ${inv.invoiceNumber}`);
+        }
         setPageLoading(false);
       })
       .catch(() => {
         toast.error("Failed to load quotation");
         router.push("/dashboard/quotations");
       });
-  }, [id]);
+  }, [id, setPageTitle]);
 
   /* ---------- Totals (unchanged) ---------- */
   const subtotal = useMemo(

@@ -8,10 +8,12 @@ import { ReceiptPreview } from "@/components/ReceiptPreview";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useDashboardTitle } from "../../layout";
 
 export default function ViewReceiptPage() {
   const { id } = useParams();
   const router = useRouter();
+  const setPageTitle = useDashboardTitle();
 
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -26,13 +28,16 @@ export default function ViewReceiptPage() {
       })
       .then((d) => {
         setData(d);
+        if (d?.invoiceNumber) {
+          setPageTitle(`Receipts / ${d.invoiceNumber}`);
+        }
         setLoading(false);
       })
       .catch(() => {
         toast.error("Receipt not found");
         setLoading(false);
       });
-  }, [id]);
+  }, [id, setPageTitle]);
 
   /* ---------- PDF download (unchanged logic) ---------- */
   const handleDownloadPDF = async () => {
