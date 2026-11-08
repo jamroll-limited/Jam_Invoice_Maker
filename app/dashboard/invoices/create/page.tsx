@@ -708,17 +708,17 @@ export default function CreateInvoicePage() {
 
                   {/* Row 1: Invoice Number + Document Name */}
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <Field label="Invoice Number">
-                      <Input
-                        value={formData.invoiceNumber}
-                        onChange={(e) => setFormData({ ...formData, invoiceNumber: e.target.value })}
-                        className={inputClass}
-                      />
-                    </Field>
                     <Field label="Document Name">
                       <Input
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        className={inputClass}
+                      />
+                    </Field>
+                    <Field label="Invoice Number">
+                      <Input
+                        value={formData.invoiceNumber}
+                        onChange={(e) => setFormData({ ...formData, invoiceNumber: e.target.value })}
                         className={inputClass}
                       />
                     </Field>
